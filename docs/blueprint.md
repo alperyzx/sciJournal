@@ -30,7 +30,7 @@ Project Overview
         Dependencies: rss-parser for RSS feed parsing, axios for HTTP requests.
     Features:
         Fetch RSS feeds from 10 journals (listed below).
-        Filter articles published in the last 7 days.
+        Filter articles published last 6.
         Group articles by journal name.
         Display articles with title, publication date, description, and a link to the full article.
         Responsive, clean UI with Tailwind CSS.
