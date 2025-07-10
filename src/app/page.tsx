@@ -132,29 +132,29 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen modern-bg text-scijournal-text">
+    <div className="min-h-screen modern-bg text-scijournal-text flex flex-col">
       {/* Fixed Header */}
       <div className="fixed top-0 left-0 right-0 z-[9999] bg-white/75 dark:bg-gray-900/75 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
         {/* Header particles animation */}
         <HeaderParticles />
         
-        <div className="container mx-auto px-4 py-4 relative z-20 pointer-events-none">
+        <div className="container mx-auto px-4 py-3 md:py-4 relative z-20 pointer-events-none">
           {/* SVG academic emblem and title - horizontally and vertically centered */}
-          <div className="flex items-center justify-center gap-4 pointer-events-auto">
-            <svg className="h-10 w-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="flex items-center justify-center gap-2 md:gap-4 pointer-events-auto">
+            <svg className="h-6 w-6 md:h-8 lg:h-10 md:w-8 lg:w-10 flex-shrink-0" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="50" cy="50" r="45" stroke="var(--scijournal-secondary)" strokeWidth="5"/>
               <line x1="30" y1="50" x2="70" y2="50" stroke="var(--scijournal-secondary)" strokeWidth="3"/>
             </svg>
             
             {/* Updated stylish title */}
             <div className="relative">
-              <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 tracking-widest">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 tracking-wide md:tracking-widest whitespace-nowrap">
                 SciJournal Digest
               </h1>
-              <svg className="absolute -bottom-1 left-1/2 transform -translate-x-1/2" width="120" height="15" viewBox="0 0 120 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 7.5 Q60 0 120 7.5" stroke="url(#gradient)" strokeWidth="2" fill="none"/>
+              <svg className="absolute -bottom-0.5 md:-bottom-1 left-1/2 transform -translate-x-1/2" width="80" height="10" viewBox="0 0 80 10" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: 'clamp(80px, 100%, 120px)', height: 'clamp(8px, 1.5vw, 15px)' }}>
+                <path d="M0 5 Q40 0 80 5" stroke="url(#gradient)" strokeWidth="1.5" fill="none"/>
                 <defs>
-                  <linearGradient id="gradient" x1="0" y1="0" x2="120" y2="0">
+                  <linearGradient id="gradient" x1="0" y1="0" x2="80" y2="0">
                     <stop offset="0%" stopColor="#3b82f6" className="dark:stop-color-[#60a5fa]"/>
                     <stop offset="100%" stopColor="#14b8a6" className="dark:stop-color-[#2dd4bf]"/>
                   </linearGradient>
@@ -169,7 +169,7 @@ const Home: React.FC = () => {
       <FloatingTriangles />
 
       {/* Main Content with top padding to account for fixed header */}
-      <div className="container mx-auto px-4 py-6 relative z-10 pt-24">
+      <div className="container mx-auto px-4 py-6 relative z-10 pt-16 md:pt-20 lg:pt-24 flex-grow">
 
         {loading ? (
           <div className="text-center p-8">
@@ -192,9 +192,9 @@ const Home: React.FC = () => {
               const totalPages = Math.ceil(group.articles.length / ARTICLES_PER_PAGE);
 
               return (
-                <AccordionItem key={journalName} value={journalName} className="mb-4 border rounded-md">
+                <AccordionItem key={journalName} value={journalName} className="mb-4 border rounded-md data-[state=open]:border-blue-500 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/20 data-[state=open]:shadow-lg transition-all duration-200">
                   {/* Updated journal title styling */}
-                  <AccordionTrigger className="text-2xl font-semibold px-4 py-2 text-left w-full bg-gradient-to-r from-blue-500 to-teal-500 dark:from-blue-400 dark:to-teal-300 text-transparent bg-clip-text">
+                  <AccordionTrigger className="text-lg md:text-xl lg:text-2xl font-semibold px-4 py-2 text-left w-full bg-gradient-to-r from-blue-500 to-teal-500 dark:from-blue-400 dark:to-teal-300 text-transparent bg-clip-text data-[state=open]:from-blue-600 data-[state=open]:to-teal-600 dark:data-[state=open]:from-blue-300 dark:data-[state=open]:to-teal-200 hover:from-blue-600 hover:to-teal-600 dark:hover:from-blue-300 dark:hover:to-teal-200 transition-all duration-200">
                     {journalName}
                   </AccordionTrigger>
                   <AccordionContent>
@@ -203,13 +203,13 @@ const Home: React.FC = () => {
                         {articlesToDisplay.map((article, index) => (
                           <Card key={index} className="bg-card rounded-lg shadow-md overflow-hidden flex flex-col">
                             <CardHeader className="p-4">
-                              <CardTitle className="text-lg font-medium line-clamp-2">{article.title}</CardTitle>
-                              <CardDescription className="text-sm text-muted-foreground">
+                              <CardTitle className="text-base md:text-lg font-medium line-clamp-2">{article.title}</CardTitle>
+                              <CardDescription className="text-xs md:text-sm text-muted-foreground">
                                 {formatDate(article.publicationDate)}
                               </CardDescription>
                             </CardHeader>
                             <CardContent className="p-4 flex-grow">
-                              <p className="article-text line-clamp-3">{article.description}</p>
+                              <p className="article-text text-sm md:text-base line-clamp-3">{article.description}</p>
                             </CardContent>
                             <div className="p-4 bg-muted">
                               <a
@@ -254,6 +254,25 @@ const Home: React.FC = () => {
           </Accordion>
         )}
       </div>
+
+      {/* Compact Footer */}
+      <footer className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 mt-8">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 font-semibold">
+                SciJournal Digest
+              </span>
+              <span className="text-gray-500 dark:text-gray-400">© 2025</span>
+            </div>
+            <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
+              <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
+              <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Contact</a>
+              <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy</a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
