@@ -27,6 +27,7 @@ const Home: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<{[key: string]: number}>({});
   const [error, setError,] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Night mode: set dark class based on system preference
   useEffect(() => {
@@ -131,24 +132,32 @@ const Home: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div className="min-h-screen modern-bg text-scijournal-text flex flex-col">
       {/* Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 z-[9999] bg-white/75 dark:bg-gray-900/75 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className={
+        `fixed top-0 left-0 right-0 z-[9999] bg-white/75 dark:bg-gray-900/75 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden transition-all duration-300 ${isScrolled ? 'py-0' : ''}`
+      }>
         {/* Header particles animation */}
         <HeaderParticles />
-        
-        <div className="container mx-auto px-4 py-3 md:py-4 relative z-20 pointer-events-none">
+        <div className={`container mx-auto px-4 ${isScrolled ? 'py-2 md:py-2' : 'py-5 md:py-7'} relative z-20 pointer-events-none transition-all duration-300`}>
           {/* SVG academic emblem and title - horizontally and vertically centered */}
           <div className="flex items-center justify-center gap-2 md:gap-4 pointer-events-auto">
-            <svg className="h-6 w-6 md:h-8 lg:h-10 md:w-8 lg:w-10 flex-shrink-0" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg className={`${isScrolled ? 'h-6 w-6 md:h-7 lg:h-8 md:w-7 lg:w-8' : 'h-8 w-8 md:h-10 lg:h-12 md:w-10 lg:w-12'} flex-shrink-0 transition-all duration-300`} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="50" cy="50" r="45" stroke="var(--scijournal-secondary)" strokeWidth="5"/>
               <line x1="30" y1="50" x2="70" y2="50" stroke="var(--scijournal-secondary)" strokeWidth="3"/>
             </svg>
-            
             {/* Updated stylish title */}
             <div className="relative">
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 tracking-wide md:tracking-widest whitespace-nowrap">
+              <h1 className={`${isScrolled ? 'text-2xl md:text-3xl lg:text-4xl' : 'text-3xl md:text-4xl lg:text-5xl'} font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 tracking-wide md:tracking-widest whitespace-nowrap transition-all duration-300`}>
                 SciJournal Digest
               </h1>
               <svg className="absolute -bottom-0.5 md:-bottom-1 left-1/2 transform -translate-x-1/2" width="80" height="10" viewBox="0 0 80 10" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: 'clamp(80px, 100%, 120px)', height: 'clamp(8px, 1.5vw, 15px)' }}>
@@ -169,7 +178,7 @@ const Home: React.FC = () => {
       <FloatingTriangles />
 
       {/* Main Content with top padding to account for fixed header */}
-      <div className="container mx-auto px-4 py-6 relative z-10 pt-16 md:pt-20 lg:pt-24 flex-grow">
+      <div className={`container mx-auto px-4 py-6 relative z-10 ${isScrolled ? 'pt-16 md:pt-20 lg:pt-24' : 'pt-28 md:pt-32 lg:pt-36'} flex-grow`}>
 
         {loading ? (
           <div className="text-center p-8">
