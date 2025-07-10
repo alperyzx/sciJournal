@@ -146,7 +146,7 @@ const Home: React.FC = () => {
     <div className="min-h-screen modern-bg text-scijournal-text flex flex-col">
       {/* Fixed Header */}
       <div className={
-        `fixed top-0 left-0 right-0 z-[9999] bg-white/75 dark:bg-gray-900/75 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden transition-all duration-300 ${isScrolled ? 'py-0' : ''}`
+        `fixed top-0 left-0 right-0 z-[9999] bg-white/90 dark:bg-gray-950/95 backdrop-blur-md border-b border-gray-200 dark:border-blue-900 shadow-sm overflow-hidden transition-all duration-300 ${isScrolled ? 'py-0' : ''}`
       }>
         {/* Header particles animation */}
         <HeaderParticles />
@@ -159,7 +159,7 @@ const Home: React.FC = () => {
             </svg>
             {/* Updated stylish title */}
             <div className="relative">
-              <h1 className={`${isScrolled ? 'text-2xl md:text-3xl lg:text-4xl' : 'text-3xl md:text-4xl lg:text-5xl'} font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 tracking-wide md:tracking-widest whitespace-nowrap transition-all duration-300`}>
+              <h1 className={`${isScrolled ? 'text-2xl md:text-3xl lg:text-4xl' : 'text-3xl md:text-4xl lg:text-5xl'} font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-700 via-cyan-400 to-teal-400 dark:from-blue-400 dark:via-cyan-300 dark:to-teal-200 tracking-wide md:tracking-widest whitespace-nowrap transition-all duration-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.18)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]`}>
                 SciJournal Digest
               </h1>
               <svg className="absolute -bottom-0.5 md:-bottom-1 left-1/2 transform -translate-x-1/2" width="80" height="10" viewBox="0 0 80 10" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: 'clamp(80px, 100%, 120px)', height: 'clamp(8px, 1.5vw, 15px)' }}>
@@ -206,12 +206,12 @@ const Home: React.FC = () => {
                 <AccordionItem
                   key={journalName}
                   value={journalName}
-                  className="mb-4 border rounded-md data-[state=open]:border-blue-500 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/20 data-[state=open]:shadow-lg transition-all duration-200"
+                  className="mb-4 border rounded-md data-[state=open]:border-blue-600 data-[state=open]:bg-blue-100/80 dark:data-[state=open]:bg-blue-900/70 data-[state=open]:shadow-lg transition-all duration-200"
                 >
                   {/* Updated journal title styling */}
                   <AccordionTrigger
                     ref={el => { itemRefs.current[journalName] = el; }}
-                    className="text-lg md:text-xl lg:text-2xl font-semibold px-4 py-2 text-left w-full bg-gradient-to-r from-blue-500 to-teal-500 dark:from-blue-400 dark:to-teal-300 text-transparent bg-clip-text data-[state=open]:from-blue-600 data-[state=open]:to-teal-600 dark:data-[state=open]:from-blue-300 dark:data-[state=open]:to-teal-200 hover:from-blue-600 hover:to-teal-600 dark:hover:from-blue-300 dark:hover:to-teal-200 transition-all duration-200"
+                    className="text-lg md:text-xl lg:text-2xl font-semibold px-4 py-2 text-left w-full bg-gradient-to-r from-blue-700 to-teal-500 dark:from-blue-200 dark:to-cyan-300 text-transparent bg-clip-text data-[state=open]:from-blue-800 data-[state=open]:to-teal-700 dark:data-[state=open]:from-blue-100 dark:data-[state=open]:to-cyan-200 hover:from-blue-800 hover:to-teal-700 dark:hover:from-blue-100 dark:hover:to-cyan-200 transition-all duration-200 drop-shadow-[0_1px_6px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]"
                     style={{ scrollMarginTop: headerHeight }}
                     onClick={() => {
                       // Add a delay to allow accordion state change

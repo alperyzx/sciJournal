@@ -12,7 +12,7 @@ const feeds = [
   { journalName: 'Technovation, Technological Innovation', url: 'https://rss.sciencedirect.com/publication/science/01664972', type: 'sciencedirect' },
   { journalName: 'Computers & Industrial Engineering', url: 'https://rss.sciencedirect.com/publication/science/03608352', type: 'sciencedirect' },
   { journalName: 'Advanced Engineering Informatics', url: 'https://rss.sciencedirect.com/publication/science/14740346', type: 'sciencedirect' },
-  { journalName: 'Technological Forecasting and Social Change', url: 'https://rss.sciencedirect.com/publication/science/00401625', type: 'sciencedirect' },
+  { journalName: 'Technological Forecasting & Social Change', url: 'https://rss.sciencedirect.com/publication/science/00401625', type: 'sciencedirect' },
   { journalName: 'Technology in Society', url: 'https://rss.sciencedirect.com/publication/science/0160791X', type: 'sciencedirect' },
   { journalName: 'World Patent Information', url: 'https://rss.sciencedirect.com/publication/science/01722190', type: 'sciencedirect' },
 ];
