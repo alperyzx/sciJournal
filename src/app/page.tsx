@@ -5,6 +5,7 @@ import axios from 'axios';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/components/ui/accordion';
 import FloatingTriangles from '@/components/FloatingTriangles';
+import HeaderParticles from '@/components/HeaderParticles';
 
 interface Article {
   title: string;
@@ -131,35 +132,44 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen modern-bg py-6 text-scijournal-text">
-      {/* Floating triangles */}
-      <FloatingTriangles />
-      
-      <div className="container mx-auto px-4 relative z-10">
-        {/* SVG academic emblem */}
-        <div className="flex justify-center mb-4">
-          <svg className="h-12 w-12" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="45" stroke="var(--scijournal-secondary)" strokeWidth="5"/>
-            <line x1="30" y1="50" x2="70" y2="50" stroke="var(--scijournal-secondary)" strokeWidth="3"/>
-          </svg>
-        </div>
-        {/* Updated stylish title */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="relative">
-            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 tracking-widest">
-              SciJournal Digest
-            </h1>
-            <svg className="absolute -bottom-2 left-1/2 transform -translate-x-1/2" width="150" height="20" viewBox="0 0 150 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M0 10 Q75 0 150 10" stroke="url(#gradient)" strokeWidth="3" fill="none"/>
-              <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="150" y2="0">
-                  <stop offset="0%" stopColor="#3b82f6" className="dark:stop-color-[#60a5fa]"/>
-                  <stop offset="100%" stopColor="#14b8a6" className="dark:stop-color-[#2dd4bf]"/>
-                </linearGradient>
-              </defs>
+    <div className="min-h-screen modern-bg text-scijournal-text">
+      {/* Fixed Header */}
+      <div className="fixed top-0 left-0 right-0 z-[9999] bg-white/75 dark:bg-gray-900/75 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        {/* Header particles animation */}
+        <HeaderParticles />
+        
+        <div className="container mx-auto px-4 py-4 relative z-20 pointer-events-none">
+          {/* SVG academic emblem and title - horizontally and vertically centered */}
+          <div className="flex items-center justify-center gap-4 pointer-events-auto">
+            <svg className="h-10 w-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="45" stroke="var(--scijournal-secondary)" strokeWidth="5"/>
+              <line x1="30" y1="50" x2="70" y2="50" stroke="var(--scijournal-secondary)" strokeWidth="3"/>
             </svg>
+            
+            {/* Updated stylish title */}
+            <div className="relative">
+              <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 tracking-widest">
+                SciJournal Digest
+              </h1>
+              <svg className="absolute -bottom-1 left-1/2 transform -translate-x-1/2" width="120" height="15" viewBox="0 0 120 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 7.5 Q60 0 120 7.5" stroke="url(#gradient)" strokeWidth="2" fill="none"/>
+                <defs>
+                  <linearGradient id="gradient" x1="0" y1="0" x2="120" y2="0">
+                    <stop offset="0%" stopColor="#3b82f6" className="dark:stop-color-[#60a5fa]"/>
+                    <stop offset="100%" stopColor="#14b8a6" className="dark:stop-color-[#2dd4bf]"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Floating triangles */}
+      <FloatingTriangles />
+
+      {/* Main Content with top padding to account for fixed header */}
+      <div className="container mx-auto px-4 py-6 relative z-10 pt-24">
 
         {loading ? (
           <div className="text-center p-8">
