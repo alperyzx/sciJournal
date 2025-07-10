@@ -5,11 +5,11 @@ import { stripHtml } from 'string-strip-html';
 
 // Define feed sources
 const feeds = [
-  { journalName: 'IEEE Transactions on Engineering Management', url: 'https://ieeexplore.ieee.org/rss/TOC17.XML', type: 'standard' },
-  { journalName: 'International Journal of Technology Management', url: 'https://www.inderscienceonline.com/action/showFeed?type=etoc&feed=rss&jc=ijtm', type: 'standard' },
-  { journalName: 'International Journal of Innovation Management', url: 'https://www.worldscientific.com/action/showFeed?type=etoc&feed=rss&jc=ijim', type: 'standard' },
+  { journalName: 'IEEE Transactions on Eng. Management', url: 'https://ieeexplore.ieee.org/rss/TOC17.XML', type: 'standard' },
+  { journalName: 'Int. Journal of Technology Management', url: 'https://www.inderscienceonline.com/action/showFeed?type=etoc&feed=rss&jc=ijtm', type: 'standard' },
+  { journalName: 'Int. Journal of Innovation Management', url: 'https://www.worldscientific.com/action/showFeed?type=etoc&feed=rss&jc=ijim', type: 'standard' },
   { journalName: 'Computers in Industry', url: 'https://rss.sciencedirect.com/publication/science/01663615', type: 'sciencedirect' },
-  { journalName: 'Technovation', url: 'https://rss.sciencedirect.com/publication/science/01664972', type: 'sciencedirect' },
+  { journalName: 'Technovation, Technological Innovation', url: 'https://rss.sciencedirect.com/publication/science/01664972', type: 'sciencedirect' },
   { journalName: 'Computers & Industrial Engineering', url: 'https://rss.sciencedirect.com/publication/science/03608352', type: 'sciencedirect' },
   { journalName: 'Advanced Engineering Informatics', url: 'https://rss.sciencedirect.com/publication/science/14740346', type: 'sciencedirect' },
   { journalName: 'Technological Forecasting and Social Change', url: 'https://rss.sciencedirect.com/publication/science/00401625', type: 'sciencedirect' },
