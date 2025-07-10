@@ -258,18 +258,12 @@ const Home: React.FC = () => {
       {/* Compact Footer */}
       <footer className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 mt-8">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 font-semibold">
-                SciJournal Digest
-              </span>
-              <span className="text-gray-500 dark:text-gray-400">© 2025</span>
-            </div>
-            <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
-              <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
-              <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Contact</a>
-              <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy</a>
-            </div>
+          <div className="flex items-center justify-center gap-4 text-sm">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 font-semibold">
+              SciJournal Digest
+            </span>
+            <span className="text-gray-500 dark:text-gray-400">© 2025</span>
+            <a href="https://github.com/alperyzx/sciJournal/tree/triz" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
           </div>
         </div>
       </footer>
