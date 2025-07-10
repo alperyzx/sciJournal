@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {useEffect, useState, useRef} from 'react';
 import axios from 'axios';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/components/ui/accordion';
@@ -28,6 +28,8 @@ const Home: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<{[key: string]: number}>({});
   const [error, setError,] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const itemRefs = useRef<{ [key: string]: HTMLDivElement | HTMLButtonElement | null }>({});
+  const headerHeight = 112; // px, matches largest header (pt-28)
 
   // Night mode: set dark class based on system preference
   useEffect(() => {
@@ -178,7 +180,7 @@ const Home: React.FC = () => {
       <FloatingTriangles />
 
       {/* Main Content with top padding to account for fixed header */}
-      <div className={`container mx-auto px-4 py-6 relative z-10 ${isScrolled ? 'pt-16 md:pt-20 lg:pt-24' : 'pt-28 md:pt-32 lg:pt-36'} flex-grow`}>
+      <div className="container mx-auto px-4 py-6 relative z-10 pt-28 md:pt-32 lg:pt-36 flex-grow" style={{ scrollPaddingBottom: `${headerHeight + 40}px` }}>
 
         {loading ? (
           <div className="text-center p-8">
@@ -201,9 +203,28 @@ const Home: React.FC = () => {
               const totalPages = Math.ceil(group.articles.length / ARTICLES_PER_PAGE);
 
               return (
-                <AccordionItem key={journalName} value={journalName} className="mb-4 border rounded-md data-[state=open]:border-blue-500 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/20 data-[state=open]:shadow-lg transition-all duration-200">
+                <AccordionItem
+                  key={journalName}
+                  value={journalName}
+                  className="mb-4 border rounded-md data-[state=open]:border-blue-500 data-[state=open]:bg-blue-50 dark:data-[state=open]:bg-blue-950/20 data-[state=open]:shadow-lg transition-all duration-200"
+                >
                   {/* Updated journal title styling */}
-                  <AccordionTrigger className="text-lg md:text-xl lg:text-2xl font-semibold px-4 py-2 text-left w-full bg-gradient-to-r from-blue-500 to-teal-500 dark:from-blue-400 dark:to-teal-300 text-transparent bg-clip-text data-[state=open]:from-blue-600 data-[state=open]:to-teal-600 dark:data-[state=open]:from-blue-300 dark:data-[state=open]:to-teal-200 hover:from-blue-600 hover:to-teal-600 dark:hover:from-blue-300 dark:hover:to-teal-200 transition-all duration-200">
+                  <AccordionTrigger
+                    ref={el => { itemRefs.current[journalName] = el; }}
+                    className="text-lg md:text-xl lg:text-2xl font-semibold px-4 py-2 text-left w-full bg-gradient-to-r from-blue-500 to-teal-500 dark:from-blue-400 dark:to-teal-300 text-transparent bg-clip-text data-[state=open]:from-blue-600 data-[state=open]:to-teal-600 dark:data-[state=open]:from-blue-300 dark:data-[state=open]:to-teal-200 hover:from-blue-600 hover:to-teal-600 dark:hover:from-blue-300 dark:hover:to-teal-200 transition-all duration-200"
+                    style={{ scrollMarginTop: headerHeight }}
+                    onClick={() => {
+                      // Add a delay to allow accordion state change
+                      setTimeout(() => {
+                        const el = itemRefs.current[journalName];
+                        if (el) {
+                          const rect = el.getBoundingClientRect();
+                          const y = rect.top + window.scrollY - headerHeight - 10;
+                          window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
+                      }, 150);
+                    }}
+                  >
                     {journalName}
                   </AccordionTrigger>
                   <AccordionContent>
