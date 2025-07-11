@@ -7,6 +7,10 @@ import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/co
 import FloatingTriangles from '@/components/FloatingTriangles';
 import HeaderParticles from '@/components/HeaderParticles';
 
+// Get journal list from API route feeds (imported dynamically)
+import feeds from './api/rss/feeds';
+const JOURNALS = feeds.map((f: { journalName: string }) => f.journalName);
+
 interface Article {
   title: string;
   link: string;
@@ -22,11 +26,12 @@ interface ArticleGroup {
 const ARTICLES_PER_PAGE = 6;
 
 const Home: React.FC = () => {
-  const [articleGroups, setArticleGroups] = useState<ArticleGroup[]>([]);
-  const [articleCache, setArticleCache] = useState<{[key: string]: Article[]}>({});
-  const [loading, setLoading] = useState<boolean>(true);
-  const [currentPage, setCurrentPage] = useState<{[key: string]: number}>({});
-  const [error, setError,] = useState<string | null>(null);
+  // Per-journal state
+  const [articles, setArticles] = useState<{ [journal: string]: Article[] }>({});
+  const [loading, setLoading] = useState<{ [journal: string]: boolean }>({});
+  const [error, setError] = useState<{ [journal: string]: string | null }>({});
+  const [currentPage, setCurrentPage] = useState<{ [journal: string]: number }>({});
+  const [openJournal, setOpenJournal] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const itemRefs = useRef<{ [key: string]: HTMLDivElement | HTMLButtonElement | null }>({});
   const headerHeight = 112; // px, matches largest header (pt-28)
@@ -48,69 +53,50 @@ const Home: React.FC = () => {
     return () => mq.removeEventListener('change', setDarkMode);
   }, []);
 
+  // Global loading state for all journals
+  const [globalLoading, setGlobalLoading] = useState(true);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+
+  // Fetch all articles for all journals on mount
   useEffect(() => {
-    const fetchArticles = async () => {
+    let cancelled = false;
+    const fetchAll = async () => {
+      setGlobalLoading(true);
+      setGlobalError(null);
       try {
-        setLoading(true);
-        setError(null);
-        
-        // Use the new API route
         const response = await axios.get('/api/rss');
         const groups: ArticleGroup[] = response.data;
-
-        // Merge new articles with the existing cache
-        const updatedCache: {[key: string]: Article[]} = {...articleCache};
+        const articlesMap: { [journal: string]: Article[] } = {};
         groups.forEach(group => {
-          const journal = group.journalName;
-          const existing = updatedCache[journal] || [];
-          // Find new articles that are not in the cache (by link)
-          const newArticles = group.articles.filter(article => 
-            !existing.find(e => e.link === article.link)
-          );
-          // Merge new articles at the beginning
-          let merged = [...newArticles, ...existing];
-          // Remove duplicates based on link (keeping the first occurrence)
-          const seen = new Set();
-          merged = merged.filter(article => {
-            if (seen.has(article.link)) return false;
-            seen.add(article.link);
-            return true;
-          });
-          // Sort by publicationDate descending and limit to 6
-          merged.sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime());
-          updatedCache[journal] = merged.slice(0, 6);
+          articlesMap[group.journalName] = group.articles;
         });
-        
-        setArticleCache(updatedCache);
-        // Update article groups from the cache
-        const updatedGroups: ArticleGroup[] = Object.keys(updatedCache).map(journal => ({
-          journalName: journal,
-          articles: updatedCache[journal],
-        }));
-        setArticleGroups(updatedGroups);
-
-        // Initialize current page for each journal if not already set
-        const initialCurrentPage = {...currentPage};
-        updatedGroups.forEach(group => {
-          if (!initialCurrentPage[group.journalName]) {
-            initialCurrentPage[group.journalName] = 1;
-          }
-        });
-        setCurrentPage(initialCurrentPage);
-      } catch (error) {
-        console.error('Failed to fetch articles:', error);
-        setError('Failed to fetch articles. Please try again later.');
-        setArticleGroups([]);
+        if (!cancelled) {
+          setArticles(articlesMap);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setGlobalError('Failed to fetch articles. Please try again later.');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setGlobalLoading(false);
+        }
       }
     };
-
-    fetchArticles();
+    fetchAll();
+    return () => { cancelled = true; };
   }, []);
 
   const handlePageChange = (journalName: string, newPage: number) => {
     setCurrentPage(prev => ({...prev, [journalName]: newPage}));
+  };
+
+  // Accordion open handler
+  const handleAccordionChange = (journal: string | null) => {
+    setOpenJournal(journal);
+    if (journal && currentPage[journal] === undefined) {
+      setCurrentPage(prev => ({ ...prev, [journal]: 1 }));
+    }
   };
 
   // Helper function to format date consistently
@@ -182,53 +168,53 @@ const Home: React.FC = () => {
       {/* Main Content with top padding to account for fixed header */}
       <div className="container mx-auto px-4 py-6 relative z-10 pt-28 md:pt-32 lg:pt-36 flex-grow" style={{ scrollPaddingBottom: `${headerHeight + 40}px` }}>
 
-        {loading ? (
-          <div className="text-center p-8">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-            <p className="mt-4">Loading articles...</p>
-          </div>
-        ) : error ? (
+        {globalError && (
           <div className="text-center text-red-500 p-4 rounded-lg bg-red-50 border border-red-200">
-            {error}
+            {globalError}
           </div>
-        ) : articleGroups.length === 0 ? (
-          <p className="text-center">No articles available at the moment.</p>
-        ) : (
-          <Accordion type="single" collapsible>
-            {articleGroups.map((group) => {
-              const journalName = group.journalName;
-              const startIndex = (currentPage[journalName] - 1) * ARTICLES_PER_PAGE;
-              const endIndex = startIndex + ARTICLES_PER_PAGE;
-              const articlesToDisplay = group.articles.slice(startIndex, endIndex);
-              const totalPages = Math.ceil(group.articles.length / ARTICLES_PER_PAGE);
-
-              return (
-                <AccordionItem
-                  key={journalName}
-                  value={journalName}
-                  className="mb-4 border rounded-md data-[state=open]:border-blue-600 data-[state=open]:bg-blue-100/80 dark:data-[state=open]:bg-blue-900/70 data-[state=open]:shadow-lg transition-all duration-200"
+        )}
+        <Accordion type="single" collapsible value={openJournal ?? undefined} onValueChange={handleAccordionChange}>
+          {JOURNALS.map((journalName: string) => {
+            const journalArticles = articles[journalName] || [];
+            const page = currentPage[journalName] || 1;
+            const startIndex = (page - 1) * ARTICLES_PER_PAGE;
+            const endIndex = startIndex + ARTICLES_PER_PAGE;
+            const articlesToDisplay = journalArticles.slice(startIndex, endIndex);
+            const totalPages = Math.ceil(journalArticles.length / ARTICLES_PER_PAGE);
+            const isOpen = openJournal === journalName;
+            return (
+              <AccordionItem
+                key={journalName}
+                value={journalName}
+                className="mb-4 border rounded-md data-[state=open]:border-blue-600 data-[state=open]:bg-blue-100/80 dark:data-[state=open]:bg-blue-900/70 data-[state=open]:shadow-lg transition-all duration-200"
+              >
+                <AccordionTrigger
+                  ref={el => { itemRefs.current[journalName] = el; }}
+                  className="text-lg md:text-xl lg:text-2xl font-semibold px-4 py-2 text-left w-full bg-gradient-to-r from-blue-700 to-teal-500 dark:from-blue-200 dark:to-cyan-300 text-transparent bg-clip-text data-[state=open]:from-blue-800 data-[state=open]:to-teal-700 dark:data-[state=open]:from-blue-100 dark:data-[state=open]:to-cyan-200 hover:from-blue-800 hover:to-teal-700 dark:hover:from-blue-100 dark:hover:to-cyan-200 transition-all duration-200 drop-shadow-[0_1px_6px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]"
+                  style={{ scrollMarginTop: headerHeight }}
+                  onClick={() => {
+                    setTimeout(() => {
+                      const el = itemRefs.current[journalName];
+                      if (el) {
+                        const rect = el.getBoundingClientRect();
+                        const y = rect.top + window.scrollY - headerHeight - 10;
+                        window.scrollTo({ top: y, behavior: 'smooth' });
+                      }
+                    }, 150);
+                  }}
                 >
-                  {/* Updated journal title styling */}
-                  <AccordionTrigger
-                    ref={el => { itemRefs.current[journalName] = el; }}
-                    className="text-lg md:text-xl lg:text-2xl font-semibold px-4 py-2 text-left w-full bg-gradient-to-r from-blue-700 to-teal-500 dark:from-blue-200 dark:to-cyan-300 text-transparent bg-clip-text data-[state=open]:from-blue-800 data-[state=open]:to-teal-700 dark:data-[state=open]:from-blue-100 dark:data-[state=open]:to-cyan-200 hover:from-blue-800 hover:to-teal-700 dark:hover:from-blue-100 dark:hover:to-cyan-200 transition-all duration-200 drop-shadow-[0_1px_6px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]"
-                    style={{ scrollMarginTop: headerHeight }}
-                    onClick={() => {
-                      // Add a delay to allow accordion state change
-                      setTimeout(() => {
-                        const el = itemRefs.current[journalName];
-                        if (el) {
-                          const rect = el.getBoundingClientRect();
-                          const y = rect.top + window.scrollY - headerHeight - 10;
-                          window.scrollTo({ top: y, behavior: 'smooth' });
-                        }
-                      }, 150);
-                    }}
-                  >
-                    {journalName}
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    {articlesToDisplay.length > 0 ? (
+                  {journalName}
+                </AccordionTrigger>
+                <AccordionContent>
+                  {globalLoading && isOpen ? (
+                    <div className="text-center p-8">
+                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                      <p className="mt-4">Loading articles...</p>
+                    </div>
+                  ) : !globalLoading && journalArticles.length === 0 ? (
+                    <p className="text-center p-4">No articles available for this journal.</p>
+                  ) : !globalLoading ? (
+                    <>
                       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 px-4 py-2">
                         {articlesToDisplay.map((article, index) => (
                           <Card key={index} className="bg-card rounded-lg shadow-md overflow-hidden flex flex-col">
@@ -254,35 +240,32 @@ const Home: React.FC = () => {
                           </Card>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-center p-4">No articles available for this journal.</p>
-                    )}
-
-                    {totalPages > 1 && (
-                      <div className="flex justify-center mt-4">
-                        <button
-                          onClick={() => handlePageChange(journalName, currentPage[journalName] - 1)}
-                          disabled={currentPage[journalName] === 1}
-                          className="px-4 py-2 mr-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <span className="px-4 py-2">{`Page ${currentPage[journalName]} of ${totalPages}`}</span>
-                        <button
-                          onClick={() => handlePageChange(journalName, currentPage[journalName] + 1)}
-                          disabled={currentPage[journalName] === totalPages}
-                          className="px-4 py-2 ml-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
-        )}
+                      {totalPages > 1 && (
+                        <div className="flex justify-center mt-4">
+                          <button
+                            onClick={() => handlePageChange(journalName, page - 1)}
+                            disabled={page === 1}
+                            className="px-4 py-2 mr-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
+                          >
+                            Previous
+                          </button>
+                          <span className="px-4 py-2">{`Page ${page} of ${totalPages}`}</span>
+                          <button
+                            onClick={() => handlePageChange(journalName, page + 1)}
+                            disabled={page === totalPages}
+                            className="px-4 py-2 ml-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
       </div>
 
       {/* Compact Footer */}
