@@ -139,10 +139,7 @@ const Home: React.FC = () => {
         <div className={`container mx-auto px-4 ${isScrolled ? 'py-2 md:py-2' : 'py-5 md:py-7'} relative z-20 pointer-events-none transition-all duration-300`}>
           {/* SVG academic emblem and title - horizontally and vertically centered */}
           <div className="flex items-center justify-center gap-2 md:gap-4 pointer-events-auto">
-            <svg className={`${isScrolled ? 'h-6 w-6 md:h-7 lg:h-8 md:w-7 lg:w-8' : 'h-8 w-8 md:h-10 lg:h-12 md:w-10 lg:w-12'} flex-shrink-0 transition-all duration-300`} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="50" cy="50" r="45" stroke="var(--scijournal-secondary)" strokeWidth="5"/>
-              <line x1="30" y1="50" x2="70" y2="50" stroke="var(--scijournal-secondary)" strokeWidth="3"/>
-            </svg>
+            {/* Removed decorative SVG */}
             {/* Updated stylish title */}
             <div className="relative">
               <h1 className={`${isScrolled ? 'text-2xl md:text-3xl lg:text-4xl' : 'text-3xl md:text-4xl lg:text-5xl'} font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-700 via-cyan-400 to-teal-400 dark:from-blue-400 dark:via-cyan-300 dark:to-teal-200 tracking-wide md:tracking-widest whitespace-nowrap transition-all duration-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.18)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]`}>
@@ -166,7 +163,7 @@ const Home: React.FC = () => {
       <FloatingTriangles />
 
       {/* Main Content with top padding to account for fixed header */}
-      <div className="container mx-auto px-4 py-6 relative z-10 pt-28 md:pt-32 lg:pt-36 flex-grow" style={{ scrollPaddingBottom: `${headerHeight + 40}px` }}>
+      <div className={`container mx-auto px-4 py-6 relative z-10 ${isScrolled ? 'pt-16 md:pt-18 lg:pt-20' : 'pt-24 md:pt-24 lg:pt-28'} flex-grow transition-all duration-300`} style={{ scrollPaddingBottom: `${headerHeight + 40}px` }}>
 
         {globalError && (
           <div className="text-center text-red-500 p-4 rounded-lg bg-red-50 border border-red-200">
