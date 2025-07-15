@@ -95,6 +95,16 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Hide scrollbar while keeping functionality */
+  html {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+  }
+  
+  html::-webkit-scrollbar {
+    display: none; /* WebKit browsers */
+  }
   .article-text {
     @apply text-base;
   }

@@ -23,6 +23,41 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const MAX_ARTICLES = 6;
 
+// Cache configuration
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+
+// In-memory cache
+interface CacheEntry {
+  data: ArticleGroup[];
+  timestamp: number;
+}
+
+let cache: CacheEntry | null = null;
+
+// Function to check if cache is valid
+function isCacheValid(): boolean {
+  if (!cache) return false;
+  return Date.now() - cache.timestamp < CACHE_TTL;
+}
+
+// Function to get cached data
+function getCachedData(): ArticleGroup[] | null {
+  if (isCacheValid()) {
+    console.log('Returning cached RSS data');
+    return cache!.data;
+  }
+  return null;
+}
+
+// Function to set cache
+function setCacheData(data: ArticleGroup[]): void {
+  cache = {
+    data,
+    timestamp: Date.now()
+  };
+  console.log('RSS data cached for 1 hour');
+}
+
 // Function to extract date from HTML content with publication date tag
 function extractDateFromHtml(htmlContent: string): string | null {
   // Look for patterns like <p>Publication date: March 2025</p>
@@ -38,6 +73,13 @@ function extractDateFromHtml(htmlContent: string): string | null {
 
 export async function GET() {
   try {
+    // Check cache first
+    const cachedData = getCachedData();
+    if (cachedData) {
+      return NextResponse.json(cachedData);
+    }
+
+    console.log('Cache miss or expired, fetching fresh RSS data');
     const results: ArticleGroup[] = [];
 
     // Process feeds sequentially to avoid rate limiting
@@ -59,8 +101,12 @@ export async function GET() {
 
     // Filter out journals with empty articles (optional)
     const nonEmptyGroups = results.filter(group => group.articles.length > 0);
+    const finalResults = nonEmptyGroups.length > 0 ? nonEmptyGroups : results;
+    
+    // Cache the results
+    setCacheData(finalResults);
 
-    return NextResponse.json(nonEmptyGroups.length > 0 ? nonEmptyGroups : results);
+    return NextResponse.json(finalResults);
   } catch (error) {
     console.error("Error in RSS handler:", error);
     return NextResponse.json({ error: "Failed to fetch RSS feeds" }, { status: 500 });
@@ -181,7 +227,7 @@ async function fetchRegularFeed(feed: { journalName: string; url: string; type?:
     });
 
     articles = articles
-      .sort((a, b) => {
+      .sort((a: Article, b: Article) => {
         // Special handling for dates like "March 2025"
         // which can't be directly compared with new Date()
         try {
