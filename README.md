@@ -2,6 +2,8 @@
 
 A modern web application that aggregates and displays scientific journal articles in an organized, user-friendly interface.
 
+Live at https://scijournal.alperyz.com/ 
+
 ## Features
 
 - **Journal Organization**: Articles are grouped by journal name in expandable accordion sections
