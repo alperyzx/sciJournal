@@ -94,18 +94,20 @@ const Home: React.FC = () => {
   // Filtered articles based on search
   const getFilteredArticles = (journalArticles: Article[], journalName: string) => {
     if (!searchQuery.trim()) return journalArticles;
-    const query = searchQuery.toLowerCase().trim();
+    const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escapedQuery}`, 'gi');
     return journalArticles.filter(article =>
-      article.title.toLowerCase().includes(query) ||
-      article.description.toLowerCase().includes(query) ||
-      journalName.toLowerCase().includes(query) // Also search in journal name
+      regex.test(article.title.toLowerCase()) ||
+      regex.test(article.description.toLowerCase()) ||
+      regex.test(journalName.toLowerCase())
     );
   };
 
   // Get all articles for global search
   const getAllArticles = () => {
     if (!searchQuery.trim()) return [];
-    const query = searchQuery.toLowerCase().trim();
+    const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escapedQuery}`, 'gi');
     const allArticles: (Article & { journalName: string })[] = [];
 
     JOURNALS.forEach(journalName => {
@@ -116,9 +118,9 @@ const Home: React.FC = () => {
         const description = Array.isArray(article.description) ? article.description[0] : article.description;
         
         if (
-          title?.toLowerCase().includes(query) ||
-          description?.toLowerCase().includes(query) ||
-          journalName.toLowerCase().includes(query)
+          regex.test(title?.toLowerCase()) ||
+          regex.test(description?.toLowerCase()) ||
+          regex.test(journalName.toLowerCase())
         ) {
           allArticles.push({ ...article, journalName });
         }
@@ -131,7 +133,8 @@ const Home: React.FC = () => {
   // Highlight search terms in text
   const highlightSearchTerm = (text: string, searchTerm: string) => {
     if (!searchTerm.trim()) return text;
-    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b(${escapedTerm}[a-zA-Z]*)`, 'gi');
     const parts = text.split(regex);
     return parts.map((part, index) =>
       regex.test(part) ? (
@@ -175,7 +178,7 @@ const Home: React.FC = () => {
     <div className="min-h-screen modern-bg text-scijournal-text flex flex-col">
       {/* Fixed Header */}
       <div className={
-        `fixed top-0 left-0 right-0 z-[9999] bg-white/90 dark:bg-gray-950/95 backdrop-blur-md border-b border-gray-200 dark:border-blue-900 shadow-sm overflow-hidden transition-[padding] duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]${isScrolled ? ' py-0' : ''}`
+        `fixed top-0 left-0 right-0 z-[999] bg-white/90 dark:bg-gray-950/95 backdrop-blur-md border-b border-gray-200 dark:border-blue-900 shadow-sm overflow-hidden transition-[padding] duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]${isScrolled ? ' py-0' : ''}`
       }>
         {/* Header particles animation */}
         <HeaderParticles />
@@ -249,8 +252,8 @@ const Home: React.FC = () => {
         {/* Search Results or Journals Grid */}
         {searchQuery.trim() ? (
           /* Global Search Results */
-          <div className="space-y-8">
-            <div className="text-center">
+          <div className="space-y-8 relative z-[99999]">
+            <div className="text-center bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-200/50 dark:border-gray-700/50 relative z-[99999] mt-8">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-2">
                 Search Results for "{searchQuery}"
               </h2>
@@ -285,10 +288,10 @@ const Home: React.FC = () => {
                   >
                     <CardHeader className="p-6 pb-3">
                       <div className="flex items-start justify-between mb-3">
-                        <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 text-xs px-2 py-1 rounded-full">
+                        <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 text-xs px-2 py-1 rounded-full truncate max-w-[60%]">
                           {highlightSearchTerm(article.journalName, searchQuery)}
                         </Badge>
-                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                           <Calendar className="h-3 w-3 mr-1" />
                           {formatDate(article.publicationDate)}
                         </div>
@@ -364,10 +367,10 @@ const Home: React.FC = () => {
                             >
                               <CardHeader className="p-6 pb-3">
                                 <div className="flex items-start justify-between mb-3">
-                                  <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 text-xs px-2 py-1 rounded-full">
+                                  <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 text-xs px-2 py-1 rounded-full truncate max-w-[60%]">
                                     #{index + 1}
                                   </Badge>
-                                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                                     <Calendar className="h-3 w-3 mr-1" />
                                     {formatDate(article.publicationDate)}
                                   </div>
@@ -418,7 +421,7 @@ const Home: React.FC = () => {
                           {selectedJournal}
                         </Badge>
                       )}
-                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
                         <Calendar className="h-4 w-4 mr-2" />
                         {formatDate(selectedArticle.publicationDate)}
                       </div>
