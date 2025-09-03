@@ -186,7 +186,17 @@ const Home: React.FC = () => {
         <HeaderParticles />
         <div className={`container mx-auto px-3 sm:px-4 ${isScrolled ? 'py-2' : 'py-4 sm:py-5 md:py-7'} relative z-20 pointer-events-none transition-[padding] duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]`}>
           {/* Title Row */}
-          <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-4 pointer-events-auto mb-3 sm:mb-4">
+          <div className="flex items-center justify-between pointer-events-auto mb-3 sm:mb-4">
+            {/* Admin Link */}
+            <div className="flex-1 flex justify-start">
+              <a
+                href="/admin"
+                className="text-xs sm:text-sm text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors font-medium"
+              >
+                Admin
+              </a>
+            </div>
+            
             {/* Updated stylish title */}
             <div className="relative">
               <h1 className={`${isScrolled ? 'text-lg sm:text-xl md:text-2xl lg:text-3xl' : 'text-xl sm:text-2xl md:text-3xl lg:text-4xl'} font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-700 via-cyan-400 to-teal-400 dark:from-blue-400 dark:via-cyan-300 dark:to-teal-200 tracking-wide md:tracking-widest whitespace-nowrap transition-all duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] drop-shadow-[0_2px_8px_rgba(0,0,0,0.18)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]`}>
@@ -202,6 +212,9 @@ const Home: React.FC = () => {
                 </defs>
               </svg>
             </div>
+            
+            {/* Spacer for symmetry */}
+            <div className="flex-1"></div>
           </div>
           
           {/* Search Row */}
@@ -359,7 +372,7 @@ const Home: React.FC = () => {
                             {journalName}
                           </h2>
                           <Badge variant="secondary" className="bg-gradient-to-r from-blue-100 to-teal-100 dark:from-blue-900 dark:to-teal-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0">
-                            {filteredArticles.length}
+                            {displayArticles.length}
                           </Badge>
                         </div>
                       </AccordionTrigger>
@@ -379,7 +392,7 @@ const Home: React.FC = () => {
                             </div>
                           ) : (
                             <div className="space-y-4">
-                              {displayArticles.slice(0, 6).map((article, index) => (
+                              {displayArticles.map((article, index) => (
                                 <Card
                                   key={index}
                                   className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200/50 dark:border-gray-700/50 overflow-hidden cursor-pointer group"

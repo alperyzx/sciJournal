@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
+import { AuthProvider } from '@/components/AuthProvider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -42,7 +43,9 @@ export default function RootLayout({
                   height="0" width="0" style={{display: 'none', visibility: 'hidden'}}></iframe>
         </noscript>
         {/* End Google Tag Manager (noscript) */}
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
