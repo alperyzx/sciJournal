@@ -21,7 +21,7 @@ interface ArticleGroup {
 // Helper function to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const MAX_ARTICLES = 6;
+const MAX_ARTICLES = 12;
 
 // Cache configuration
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
