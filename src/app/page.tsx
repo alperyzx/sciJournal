@@ -186,17 +186,7 @@ const Home: React.FC = () => {
         <HeaderParticles />
         <div className={`container mx-auto px-3 sm:px-4 ${isScrolled ? 'py-2' : 'py-4 sm:py-5 md:py-7'} relative z-20 pointer-events-none transition-[padding] duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]`}>
           {/* Title Row */}
-          <div className="flex items-center justify-between pointer-events-auto mb-3 sm:mb-4">
-            {/* Admin Link */}
-            <div className="flex-1 flex justify-start">
-              <a
-                href="/admin"
-                className="text-xs sm:text-sm text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors font-medium"
-              >
-                Admin
-              </a>
-            </div>
-            
+          <div className="flex items-center justify-center pointer-events-auto mb-3 sm:mb-4">
             {/* Updated stylish title */}
             <div className="relative">
               <h1 className={`${isScrolled ? 'text-lg sm:text-xl md:text-2xl lg:text-3xl' : 'text-xl sm:text-2xl md:text-3xl lg:text-4xl'} font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-blue-700 via-cyan-400 to-teal-400 dark:from-blue-400 dark:via-cyan-300 dark:to-teal-200 tracking-wide md:tracking-widest whitespace-nowrap transition-all duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] drop-shadow-[0_2px_8px_rgba(0,0,0,0.18)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]`}>
@@ -212,9 +202,6 @@ const Home: React.FC = () => {
                 </defs>
               </svg>
             </div>
-            
-            {/* Spacer for symmetry */}
-            <div className="flex-1"></div>
           </div>
           
           {/* Search Row */}
@@ -588,6 +575,7 @@ const Home: React.FC = () => {
             </span>
             <div className="flex items-center gap-2 sm:gap-4">
               <span className="text-gray-500 dark:text-gray-400">© 2025</span>
+              <a href="/admin" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Admin</a>
               <a href="https://github.com/alperyzx/sciJournal/tree/triz" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
             </div>
           </div>
