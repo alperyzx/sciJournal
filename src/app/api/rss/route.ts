@@ -5,6 +5,7 @@ import { stripHtml } from 'string-strip-html';
 
 // Define feed sources (imported from shared file)
 import feeds from './feeds';
+import { listVisibleJournals } from '@/lib/repositories';
 
 interface Article {
   title: string;
@@ -71,19 +72,34 @@ function extractDateFromHtml(htmlContent: string): string | null {
   return null;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    // Check cache first
-    const cachedData = getCachedData();
-    if (cachedData) {
-      return NextResponse.json(cachedData);
+    // Check cache first unless forced refresh requested
+    const url = new URL(req.url);
+    const force = url.searchParams.get('force') === 'true';
+    if (!force) {
+      const cachedData = getCachedData();
+      if (cachedData) {
+        return NextResponse.json(cachedData);
+      }
     }
 
     console.log('Cache miss or expired, fetching fresh RSS data');
     const results: ArticleGroup[] = [];
 
+    // Prefer DB-backed journals; fall back to static feeds if DB unavailable
+    let feedSources = feeds;
+    try {
+      const dbJournals = await listVisibleJournals();
+      if (dbJournals && dbJournals.length > 0) {
+        feedSources = dbJournals.map(j => ({ journalName: j.journalName, url: j.url, type: j.type }));
+      }
+    } catch (err) {
+      console.warn('Could not read journals from DB, falling back to static feeds');
+    }
+
     // Process feeds sequentially to avoid rate limiting
-    for (const feed of feeds) {
+    for (const feed of feedSources) {
       try {
         console.log(`Fetching feed: ${feed.journalName}`);
         // Use fetchRegularFeed for all feed types since rss2json is failing

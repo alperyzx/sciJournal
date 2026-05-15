@@ -45,10 +45,7 @@ Title: {{{title}}}
 Content: {{{content}}}`,
 });
 
-const summarizeArticleFlow = ai.defineFlow<
-  typeof SummarizeArticleInputSchema,
-  typeof SummarizeArticleOutputSchema
->(
+const summarizeArticleFlow = ai.defineFlow(
   {
     name: 'summarizeArticleFlow',
     inputSchema: SummarizeArticleInputSchema,
