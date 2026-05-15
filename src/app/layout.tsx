@@ -24,8 +24,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try {
+              var theme = localStorage.getItem('scijournal-theme');
+              var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              var useDark = theme ? theme === 'dark' : systemDark;
+              document.documentElement.classList.toggle('dark', useDark);
+            } catch (e) {}
+          })();
+        ` }} />
         {/* Google Tag Manager */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':

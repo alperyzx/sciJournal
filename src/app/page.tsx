@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect, useState, useRef} from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import axios from 'axios';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
@@ -8,19 +9,25 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from '@/components/ui/dialog';
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/components/ui/accordion';
-import {Search, Calendar, ExternalLink} from 'lucide-react';
+import {Search, Calendar, ExternalLink, Moon, Sun} from 'lucide-react';
 import FloatingTriangles from '@/components/FloatingTriangles';
 import HeaderParticles from '@/components/HeaderParticles';
 
-// Get journal list from API route feeds (imported dynamically)
+// Static fallback feeds; frontend will fetch DB-backed journals at runtime
 import feeds from './api/rss/feeds';
-const JOURNALS = feeds.map((f: { journalName: string }) => f.journalName);
 
 interface Article {
   title: string;
   link: string;
   description: string;
   publicationDate: string;
+}
+
+interface HighlightedArticle extends Article {
+  id: string;
+  journalName: string;
+  votes: number;
+  upvoted?: boolean;
 }
 
 interface ArticleGroup {
@@ -31,6 +38,12 @@ interface ArticleGroup {
 const ARTICLES_PER_PAGE = 6;
 
 const Home: React.FC = () => {
+  const { data: session } = useSession();
+  const [highlighted, setHighlighted] = useState<HighlightedArticle[]>([]);
+  const [upvoteLoading, setUpvoteLoading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [journalsList, setJournalsList] = useState<string[]>(() => feeds.map((f: { journalName: string }) => f.journalName));
+  const userDisplayName = session?.user?.name?.trim() || session?.user?.email?.split('@')[0] || 'Reader';
   // Per-journal state
   const [articles, setArticles] = useState<{ [journal: string]: Article[] }>({});
   const [loading, setLoading] = useState<{ [journal: string]: boolean }>({});
@@ -42,22 +55,44 @@ const Home: React.FC = () => {
   const itemRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const headerHeight = 140; // px, optimized for mobile
 
-  // Night mode: set dark class based on system preference
   useEffect(() => {
     const html = document.documentElement;
-    const setDarkMode = (e?: MediaQueryListEvent) => {
-      const isDark = e ? e.matches : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (isDark) {
-        html.classList.add('dark');
-      } else {
-        html.classList.remove('dark');
-      }
+    const storedTheme = window.localStorage.getItem('scijournal-theme');
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const useDark = storedTheme ? storedTheme === 'dark' : systemDark;
+
+    html.classList.toggle('dark', useDark);
+    setIsDarkMode(useDark);
+
+    const handleStorage = () => {
+      const nextTheme = window.localStorage.getItem('scijournal-theme');
+      const nextDark = nextTheme ? nextTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      html.classList.toggle('dark', nextDark);
+      setIsDarkMode(nextDark);
     };
-    setDarkMode();
+
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    mq.addEventListener('change', setDarkMode);
-    return () => mq.removeEventListener('change', setDarkMode);
+    const handleSystemChange = () => {
+      if (window.localStorage.getItem('scijournal-theme')) return;
+      const nextDark = mq.matches;
+      html.classList.toggle('dark', nextDark);
+      setIsDarkMode(nextDark);
+    };
+
+    window.addEventListener('storage', handleStorage);
+    mq.addEventListener('change', handleSystemChange);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      mq.removeEventListener('change', handleSystemChange);
+    };
   }, []);
+
+  const toggleTheme = () => {
+    const nextDark = !isDarkMode;
+    setIsDarkMode(nextDark);
+    document.documentElement.classList.toggle('dark', nextDark);
+    window.localStorage.setItem('scijournal-theme', nextDark ? 'dark' : 'light');
+  };
 
   // Global loading state for all journals
   const [globalLoading, setGlobalLoading] = useState(true);
@@ -90,8 +125,38 @@ const Home: React.FC = () => {
       }
     };
     fetchAll();
+    // fetch highlighted separately
+    const fetchHighlighted = async () => {
+      try {
+        const res = await axios.get('/api/articles/highlighted');
+        setHighlighted((res.data || []) as HighlightedArticle[]);
+      } catch (e) {
+        // ignore
+      }
+    };
+    // fetch journals list (DB-backed) and override fallback
+    const fetchJournals = async () => {
+      try {
+        const r = await axios.get('/api/journals');
+        const names = Array.isArray(r.data) ? r.data.map((j: any) => j.journalName) : [];
+        if (!cancelled && names.length > 0) setJournalsList(names);
+      } catch (e) {
+        // keep fallback feeds
+      }
+    };
+    fetchHighlighted();
+    fetchJournals();
     return () => { cancelled = true; };
   }, []);
+
+  // derive visible journals from session preferences and DB-backed journals list
+  const visibleJournals: string[] = (() => {
+    try {
+      const prefs = (session?.user as any)?.selectedJournals as string[] | undefined;
+      if (prefs && prefs.length > 0) return prefs.filter(p => journalsList.includes(p));
+    } catch (e) {}
+    return journalsList;
+  })();
 
   // Filtered articles based on search
   const getFilteredArticles = (journalArticles: Article[], journalName: string) => {
@@ -111,8 +176,34 @@ const Home: React.FC = () => {
     const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`\\b${escapedQuery}`, 'gi');
     const allArticles: (Article & { journalName: string })[] = [];
+    highlighted.forEach(article => {
+      const title = Array.isArray(article.title) ? article.title[0] : article.title;
+      const description = Array.isArray(article.description) ? article.description[0] : article.description;
 
-    JOURNALS.forEach(journalName => {
+      if (
+        regex.test(title?.toLowerCase()) ||
+        regex.test(description?.toLowerCase()) ||
+        regex.test(article.journalName.toLowerCase())
+      ) {
+        allArticles.push({
+          title,
+          link: article.link || '',
+          description: description || '',
+          publicationDate: article.publicationDate,
+          journalName: article.journalName,
+        });
+      }
+    });
+
+    // Build a set of keys for highlighted articles to avoid duplicates in journal lists
+    const highlightedKeySet = new Set<string>();
+    highlighted.forEach(article => {
+      const title = Array.isArray(article.title) ? article.title[0] : article.title;
+      const key = `${article.journalName}::${(title || '').toString().trim().toLowerCase()}::${article.publicationDate || ''}`;
+      highlightedKeySet.add(key);
+    });
+
+    visibleJournals.forEach(journalName => {
       const journalArticles = articles[journalName] || [];
       journalArticles.forEach(article => {
         // Handle title and description as string or array
@@ -124,7 +215,10 @@ const Home: React.FC = () => {
           regex.test(description?.toLowerCase()) ||
           regex.test(journalName.toLowerCase())
         ) {
-          allArticles.push({ ...article, journalName });
+          const articleKey = `${journalName}::${(title || '').toString().trim().toLowerCase()}::${article.publicationDate || ''}`;
+          if (!highlightedKeySet.has(articleKey)) {
+            allArticles.push({ ...article, journalName });
+          }
         }
       });
     });
@@ -185,6 +279,33 @@ const Home: React.FC = () => {
         {/* Header particles animation */}
         <HeaderParticles />
         <div className={`container mx-auto px-3 sm:px-4 ${isScrolled ? 'py-2' : 'py-4 sm:py-5 md:py-7'} relative z-20 pointer-events-none transition-[padding] duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]`}>
+          <div className="flex items-center justify-end pointer-events-auto mb-2 sm:mb-3">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={toggleTheme}
+                className="rounded-full px-3 sm:px-4 border-border bg-background/90 text-foreground shadow-lg hover:bg-background"
+                aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+              {!session?.user ? (
+                <Button
+                  onClick={() => signIn('google', { callbackUrl: '/onboarding' })}
+                  className="rounded-full px-4 sm:px-5 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-teal-600 transition-all"
+                >
+                  Personalize
+                </Button>
+              ) : (
+                <Button asChild className="rounded-full px-4 sm:px-5 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-teal-600 transition-all">
+                  <a href="/profile" title="Personalize feed" aria-label="Personalize feed">
+                    {userDisplayName}
+                  </a>
+                </Button>
+              )}
+            </div>
+          </div>
           {/* Title Row */}
           <div className="flex items-center justify-center pointer-events-auto mb-3 sm:mb-4">
             {/* Updated stylish title */}
@@ -242,13 +363,79 @@ const Home: React.FC = () => {
       <FloatingTriangles />
 
       {/* Main Content with top padding to account for fixed header */}
-      <div className={`container mx-auto px-3 sm:px-4 py-4 sm:py-6 relative z-10 ${isScrolled ? 'pt-16 sm:pt-20 md:pt-22 lg:pt-24' : 'pt-28 sm:pt-32 md:pt-36 lg:pt-40'} flex-grow transition-[padding] duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]`} style={{ scrollPaddingBottom: `${headerHeight + 40}px` }}>
+      <div className={`container mx-auto px-3 sm:px-4 py-4 sm:py-6 relative z-10 ${isScrolled ? 'pt-16 sm:pt-20 md:pt-22 lg:pt-24' : 'pt-40 sm:pt-44 md:pt-52 lg:pt-56'} flex-grow transition-[padding] duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]`} style={{ scrollPaddingBottom: `${headerHeight + 40}px` }}>
 
         {globalError && (
           <div className="text-center text-red-500 p-4 sm:p-6 rounded-xl bg-red-50 border border-red-200 mb-6 sm:mb-8">
             <div className="text-xl sm:text-2xl mb-2">⚠️</div>
             {globalError}
           </div>
+        )}
+
+        {/* Highlighted articles */}
+        {highlighted.length > 0 && !searchQuery.trim() && (
+          <section className="mb-6 rounded-2xl border border-white/10 bg-white/80 p-4 shadow-xl backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-900/80 sm:p-5">
+            <div className="mb-4 sm:mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center mb-3 sm:mb-4 gap-2 sm:gap-4">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-700 via-cyan-400 to-teal-400 dark:from-blue-400 dark:via-cyan-300 dark:to-teal-200 bg-clip-text text-transparent">
+                  Highlighted Articles
+                </h2>
+              </div>
+              <div className="h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400 rounded-full"></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {highlighted.map((a) => {
+                const title = Array.isArray(a.title) ? a.title[0] : a.title;
+                const desc = Array.isArray(a.description) ? a.description[0] : a.description;
+                const art: Article = { title, link: a.link || '', description: desc || '', publicationDate: a.publicationDate || '' };
+                return (
+                  <Card
+                    key={a.id}
+                    className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200/50 dark:border-gray-700/50 overflow-hidden cursor-pointer group"
+                    onClick={() => {
+                      setSelectedArticle(art);
+                      setSelectedJournal(a.journalName);
+                    }}
+                  >
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 text-xs px-1.5 py-0.5 rounded-full truncate max-w-[60%] whitespace-nowrap">{a.journalName}</Badge>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{formatDate(a.publicationDate)}</div>
+                      </div>
+                      <CardTitle className="text-sm font-bold line-clamp-2 text-gray-900 dark:text-white">{title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0 flex flex-col">
+                      <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-3 mb-3 flex-grow">{desc}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-blue-600 dark:text-blue-400">Votes: {a.votes}</div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2.5 text-[11px] font-medium border-gray-200 bg-white/70 text-gray-600 shadow-none hover:bg-gray-100 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+                          onClick={async (e) => {
+                          // prevent card click opening modal
+                          e.stopPropagation();
+                          if (!session?.user?.email) return window.location.assign('/admin');
+                          setUpvoteLoading(true);
+                          try {
+                            await axios.post('/api/articles/upvote', { articleId: a.id });
+                            const res = await axios.get('/api/articles/highlighted');
+                            setHighlighted((res.data || []) as HighlightedArticle[]);
+                          } catch (e) {
+                            // ignore
+                          } finally { setUpvoteLoading(false); }
+                          }}
+                          disabled={upvoteLoading}
+                        >
+                          {a.upvoted ? 'Upvoted' : 'Upvote'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
         )}
 
         {/* Search Results or Journals Grid */}
@@ -290,9 +477,16 @@ const Home: React.FC = () => {
                   >
                     <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
                       <div className="flex items-start justify-between mb-2 sm:mb-3">
-                        <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 text-xs px-1.5 py-0.5 rounded-full truncate max-w-[60%] whitespace-nowrap">
-                          {highlightSearchTerm(article.journalName, searchQuery)}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-2 max-w-[70%]">
+                          <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 text-xs px-1.5 py-0.5 rounded-full truncate whitespace-nowrap">
+                            {highlightSearchTerm(article.journalName, searchQuery)}
+                          </Badge>
+                          {highlighted.some(item => item.journalName === article.journalName && (item.title === article.title || item.title === (Array.isArray(article.title) ? article.title[0] : article.title))) && (
+                            <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                              Highlighted
+                            </Badge>
+                          )}
+                        </div>
                         <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                           <Calendar className="h-3 w-3 mr-1" />
                           {formatDate(article.publicationDate)}
@@ -327,7 +521,7 @@ const Home: React.FC = () => {
             {/* Mobile View: Collapsible Accordion */}
             <div className="block sm:hidden">
               <Accordion type="multiple" className="space-y-4">
-                {JOURNALS.map((journalName: string) => {
+                {visibleJournals.map((journalName: string) => {
                   const journalArticles = articles[journalName] || [];
                   const filteredArticles = getFilteredArticles(journalArticles, journalName);
                   const displayArticles = filteredArticles.slice(0, 12);
@@ -427,7 +621,7 @@ const Home: React.FC = () => {
 
             {/* Desktop View: Original Layout */}
             <div className="hidden sm:block space-y-8 sm:space-y-12">
-              {JOURNALS.map((journalName: string) => {
+              {visibleJournals.map((journalName: string) => {
                 const journalArticles = articles[journalName] || [];
                 const filteredArticles = getFilteredArticles(journalArticles, journalName);
                 const displayArticles = filteredArticles.slice(0, 12); // Show max 12 articles per journal
@@ -542,6 +736,32 @@ const Home: React.FC = () => {
                     <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-800 dark:text-gray-200">Abstract</h3>
                     <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300">{Array.isArray(selectedArticle.description) ? selectedArticle.description[0] : selectedArticle.description}</p>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Votes: <span id="modal-votes">—</span></div>
+                    <div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2.5 text-[11px] font-medium border-gray-200 bg-white/70 text-gray-600 shadow-none hover:bg-gray-100 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+                        onClick={async () => {
+                        if (!session?.user?.email) return window.location.assign('/admin');
+                        setUpvoteLoading(true);
+                        try {
+                          const payload = { journalName: selectedJournal, title: Array.isArray(selectedArticle.title) ? selectedArticle.title[0] : selectedArticle.title, publicationDate: selectedArticle.publicationDate, link: selectedArticle.link, description: Array.isArray(selectedArticle.description) ? selectedArticle.description[0] : selectedArticle.description };
+                          const res = await axios.post('/api/articles/upvote', payload);
+                          // refresh highlighted
+                          const r2 = await axios.get('/api/articles/highlighted');
+                          setHighlighted((r2.data || []) as HighlightedArticle[]);
+                          // update modal votes
+                          const votes = res.data?.votes ?? null;
+                          const el = document.getElementById('modal-votes');
+                          if (el && votes !== null) el.textContent = String(votes);
+                        } catch (e) {
+                          // ignore
+                        } finally { setUpvoteLoading(false); }
+                      }} disabled={upvoteLoading}>{highlighted.find(item => item.title === (Array.isArray(selectedArticle.title) ? selectedArticle.title[0] : selectedArticle.title) && item.publicationDate === selectedArticle.publicationDate && item.journalName === selectedJournal)?.upvoted ? 'Upvoted' : 'Upvote'}</Button>
+                    </div>
+                  </div>
                   <div className="flex justify-end pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
                     <Button
                       asChild
@@ -575,7 +795,9 @@ const Home: React.FC = () => {
             </span>
             <div className="flex items-center gap-2 sm:gap-4">
               <span className="text-gray-500 dark:text-gray-400">© 2025</span>
-              <a href="/admin" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Admin</a>
+              {session?.user?.role === 'admin' && (
+                <a href="/admin" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Admin</a>
+              )}
               <a href="https://github.com/alperyzx/sciJournal/tree/triz" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
             </div>
           </div>

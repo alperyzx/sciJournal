@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,17 +10,20 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Trash2, Edit, Plus, Eye, Settings, RefreshCw, LogOut } from 'lucide-react';
+import { Trash2, Edit, Plus, Eye, EyeOff, RefreshCw, LogOut, ChevronUp, ChevronDown, ArrowLeft } from 'lucide-react';
 
 interface Journal {
   id?: string;
   journalName: string;
   url: string;
   type: 'standard' | 'sciencedirect';
+  order?: number;
+  homeVisible?: boolean;
 }
 
 const AdminConsole: React.FC = () => {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [journals, setJournals] = useState<Journal[]>([]);
   const [editingJournal, setEditingJournal] = useState<Journal | null>(null);
   const [newJournal, setNewJournal] = useState<Journal>({
@@ -104,6 +108,40 @@ const AdminConsole: React.FC = () => {
     setLoading(false);
   };
 
+  const setJournalOrder = async (journal: Journal, order: number) => {
+    // send full journal payload (PUT requires journalName and url)
+    const payload = { ...journal, order };
+    await saveJournal(payload, true);
+  };
+
+  const toggleHomeVisible = async (journal: Journal) => {
+    const nextVisible = journal.homeVisible === false;
+    await saveJournal({ ...journal, homeVisible: nextVisible }, true);
+  };
+
+  const moveJournal = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= journals.length) return;
+
+    const a = journals[index];
+    const b = journals[targetIndex];
+
+    const aOrder = typeof a.order === 'number' ? a.order : index + 1;
+    const bOrder = typeof b.order === 'number' ? b.order : targetIndex + 1;
+
+    // optimistic UI
+    const newJournals = [...journals];
+    newJournals[index] = { ...a, order: bOrder };
+    newJournals[targetIndex] = { ...b, order: aOrder };
+    setJournals(newJournals);
+
+    // persist both
+    await setJournalOrder(newJournals[index], newJournals[index].order ?? aOrder);
+    await setJournalOrder(newJournals[targetIndex], newJournals[targetIndex].order ?? bOrder);
+    // reload to ensure canonical ordering
+    await loadJournals();
+  };
+
   const testJournalFeed = async (url: string) => {
     setLoading(true);
     try {
@@ -151,7 +189,7 @@ const AdminConsole: React.FC = () => {
               SciJournal Admin Console
             </CardTitle>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Sign in with Google to access admin features
+              Sign in with Google or GitHub to access admin features
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -166,6 +204,16 @@ const AdminConsole: React.FC = () => {
                 <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
               Sign in with Google
+            </Button>
+            <Button
+              onClick={() => signIn('github')}
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.48 0-.24-.01-1.03-.01-1.87-2.78.63-3.37-1.22-3.37-1.22-.45-1.18-1.11-1.49-1.11-1.49-.91-.63.07-.62.07-.62 1.01.07 1.54 1.06 1.54 1.06.9 1.58 2.37 1.12 2.95.86.09-.67.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.31.1-2.73 0 0 .84-.28 2.75 1.05A9.33 9.33 0 0 1 12 6.82c.85 0 1.71.12 2.51.34 1.91-1.33 2.75-1.05 2.75-1.05.55 1.42.2 2.47.1 2.73.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.67.96.67 1.94 0 1.4-.01 2.53-.01 2.87 0 .26.18.59.69.48A10.01 10.01 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z" />
+              </svg>
+              Sign in with GitHub
             </Button>
             {message && (
               <Alert className={message.type === 'error' ? 'border-red-500' : 'border-green-500'}>
@@ -191,10 +239,16 @@ const AdminConsole: React.FC = () => {
               Manage journal RSS feeds and configurations
             </p>
           </div>
-          <Button onClick={() => signOut()} variant="outline" className="flex items-center gap-2">
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button onClick={() => router.push('/')} variant="outline" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Home
+            </Button>
+            <Button onClick={() => signOut()} variant="outline" className="flex items-center gap-2">
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {/* Messages */}
@@ -251,8 +305,45 @@ const AdminConsole: React.FC = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400 break-all">
                       {journal.url}
                     </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Badge variant={journal.homeVisible === false ? 'outline' : 'default'}>
+                        {journal.homeVisible === false ? 'Hidden from home' : 'Visible on home'}
+                      </Badge>
+                      {typeof journal.order === 'number' && (
+                        <Badge variant="secondary">Order {journal.order}</Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 mr-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleHomeVisible(journal)}
+                        aria-label={journal.homeVisible === false ? `Show ${journal.journalName} on home` : `Hide ${journal.journalName} from home`}
+                        className="p-1"
+                      >
+                        {journal.homeVisible === false ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => moveJournal(index, 'up')}
+                        aria-label={`Move ${journal.journalName} up`}
+                        className="p-1"
+                      >
+                        <ChevronUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => moveJournal(index, 'down')}
+                        aria-label={`Move ${journal.journalName} down`}
+                        className="p-1"
+                      >
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </div>
                     <Button
                       size="sm"
                       variant="outline"
