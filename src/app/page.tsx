@@ -75,6 +75,7 @@ const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedJournal, setSelectedJournal] = useState<string | null>(null);
+  const [modalVotes, setModalVotes] = useState<number | null>(null);
   const itemRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const headerHeight = 140; // px, optimized for mobile
 
@@ -158,6 +159,18 @@ const Home: React.FC = () => {
     } catch (e) {}
     return journalsList;
   })();
+
+  useEffect(() => {
+    if (!selectedArticle) {
+      setModalVotes(null);
+      return;
+    }
+    const title = Array.isArray(selectedArticle.title) ? selectedArticle.title[0] : selectedArticle.title;
+    const pub = selectedArticle.publicationDate;
+    const journal = selectedJournal;
+    const found = highlighted.find(h => h.title === title && h.publicationDate === pub && h.journalName === journal);
+    setModalVotes(found ? found.votes : null);
+  }, [selectedArticle, highlighted, selectedJournal]);
 
   // Filtered articles based on search
   const getFilteredArticles = (journalArticles: Article[], journalName: string) => {
@@ -738,7 +751,13 @@ const Home: React.FC = () => {
                     <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300">{Array.isArray(selectedArticle.description) ? selectedArticle.description[0] : selectedArticle.description}</p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600 dark:text-gray-300">Votes: <span id="modal-votes">—</span></div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                      {modalVotes !== null ? (
+                        <>Votes: <span id="modal-votes">{modalVotes}</span></>
+                      ) : (
+                        <span className="invisible">Votes: <span id="modal-votes">—</span></span>
+                      )}
+                    </div>
                     <div>
                       <Button
                         size="sm"
@@ -755,12 +774,11 @@ const Home: React.FC = () => {
                           setHighlighted((r2.data || []) as HighlightedArticle[]);
                           // update modal votes
                           const votes = res.data?.votes ?? null;
-                          const el = document.getElementById('modal-votes');
-                          if (el && votes !== null) el.textContent = String(votes);
+                          if (votes !== null) setModalVotes(votes);
                         } catch (e) {
                           // ignore
                         } finally { setUpvoteLoading(false); }
-                      }} disabled={upvoteLoading}>{highlighted.find(item => item.title === (Array.isArray(selectedArticle.title) ? selectedArticle.title[0] : selectedArticle.title) && item.publicationDate === selectedArticle.publicationDate && item.journalName === selectedJournal)?.upvoted ? 'Upvoted' : 'Upvote'}</Button>
+                        }} disabled={upvoteLoading}>{highlighted.find(item => item.title === (Array.isArray(selectedArticle.title) ? selectedArticle.title[0] : selectedArticle.title) && item.publicationDate === selectedArticle.publicationDate && item.journalName === selectedJournal)?.upvoted ? 'Upvoted' : 'Upvote'}</Button>
                     </div>
                   </div>
                   <div className="flex justify-end pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
