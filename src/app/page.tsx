@@ -13,9 +13,6 @@ import {Search, Calendar, ExternalLink, Moon, Sun} from 'lucide-react';
 import FloatingTriangles from '@/components/FloatingTriangles';
 import HeaderParticles from '@/components/HeaderParticles';
 
-// Static fallback feeds; frontend will fetch DB-backed journals at runtime
-import feeds from './api/rss/feeds';
-
 interface Article {
   title: string;
   link: string;
@@ -33,6 +30,11 @@ interface HighlightedArticle extends Article {
 interface ArticleGroup {
   journalName: string;
   articles: Article[];
+}
+
+interface JournalsAndArticlesResponse {
+  journals: Array<{ journalName: string }>;
+  articles: ArticleGroup[];
 }
 
 const ARTICLES_PER_PAGE = 6;
@@ -65,7 +67,7 @@ const Home: React.FC = () => {
   const [highlighted, setHighlighted] = useState<HighlightedArticle[]>([]);
   const [upvoteLoading, setUpvoteLoading] = useState(false);
   const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>('system');
-  const [journalsList, setJournalsList] = useState<string[]>(() => feeds.map((f: { journalName: string }) => f.journalName));
+  const [journalsList, setJournalsList] = useState<string[]>([]);
   const userDisplayName = session?.user?.name?.trim() || session?.user?.email?.split('@')[0] || 'Reader';
   // Per-journal state
   const [articles, setArticles] = useState<{ [journal: string]: Article[] }>({});
@@ -107,14 +109,17 @@ const Home: React.FC = () => {
       setGlobalLoading(true);
       setGlobalError(null);
       try {
-        const response = await axios.get('/api/rss');
-        const groups: ArticleGroup[] = response.data;
+        const response = await axios.get('/api/journals?includeArticles=true');
+        const payload = response.data as JournalsAndArticlesResponse;
+        const groups: ArticleGroup[] = payload.articles || [];
         const articlesMap: { [journal: string]: Article[] } = {};
         groups.forEach(group => {
           articlesMap[group.journalName] = group.articles;
         });
         if (!cancelled) {
           setArticles(articlesMap);
+          const names = Array.isArray(payload.journals) ? payload.journals.map(j => j.journalName) : [];
+          if (names.length > 0) setJournalsList(names);
         }
       } catch (err) {
         if (!cancelled) {
@@ -136,18 +141,7 @@ const Home: React.FC = () => {
         // ignore
       }
     };
-    // fetch journals list (DB-backed) and override fallback
-    const fetchJournals = async () => {
-      try {
-        const r = await axios.get('/api/journals');
-        const names = Array.isArray(r.data) ? r.data.map((j: any) => j.journalName) : [];
-        if (!cancelled && names.length > 0) setJournalsList(names);
-      } catch (e) {
-        // keep fallback feeds
-      }
-    };
     fetchHighlighted();
-    fetchJournals();
     return () => { cancelled = true; };
   }, []);
 
