@@ -24,6 +24,7 @@ interface Journal {
 const AdminConsole: React.FC = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const isAdmin = session?.user?.role === 'admin';
   const [journals, setJournals] = useState<Journal[]>([]);
   const [editingJournal, setEditingJournal] = useState<Journal | null>(null);
   const [newJournal, setNewJournal] = useState<Journal>({
@@ -37,10 +38,15 @@ const AdminConsole: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (session) {
+    if (status === 'authenticated' && !isAdmin) {
+      router.replace('/');
+      return;
+    }
+
+    if (isAdmin) {
       loadJournals();
     }
-  }, [session]);
+  }, [isAdmin, router, status]);
 
   const loadJournals = async () => {
     try {
@@ -173,6 +179,20 @@ const AdminConsole: React.FC = () => {
           <CardContent className="p-6 text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
             <p className="mt-4 text-base text-gray-600 dark:text-gray-400">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (status === 'authenticated' && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center space-y-4">
+            <p className="text-base font-semibold text-red-600 dark:text-red-400">Access denied</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">You are signed in, but your account does not have admin access.</p>
+            <Button onClick={() => router.push('/')} className="w-full">Back to Home</Button>
           </CardContent>
         </Card>
       </div>
