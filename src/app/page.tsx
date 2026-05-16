@@ -307,7 +307,7 @@ const Home: React.FC = () => {
               {!session?.user ? (
                 <div className="flex items-center justify-center">
                   <Button
-                    onClick={() => signIn(undefined, { callbackUrl: '/onboarding' })}
+                    onClick={() => signIn(undefined, { callbackUrl: '/profile' })}
                     size="icon"
                     className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all"
                     aria-label="Sign in"
@@ -440,7 +440,7 @@ const Home: React.FC = () => {
                         <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 text-xs px-1.5 py-0.5 rounded-full truncate max-w-[60%] whitespace-nowrap">{a.journalName}</Badge>
                         <div className="text-xs text-gray-500 dark:text-gray-400">{formatDate(a.publicationDate)}</div>
                       </div>
-                      <CardTitle className="text-sm font-bold line-clamp-2 text-gray-900 dark:text-white">{title}</CardTitle>
+                      <CardTitle className="text-sm font-bold line-clamp-2 text-gray-900 dark:text-gray-300">{title}</CardTitle>
                     </CardHeader>
                     <CardContent className="p-4 pt-0 flex flex-col">
                       <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-3 mb-3 flex-grow">{desc}</p>
@@ -481,7 +481,7 @@ const Home: React.FC = () => {
           /* Global Search Results */
           <div className="space-y-6 sm:space-y-8 relative z-[99999]">
             <div className="text-center bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-gray-700/50 relative z-[99999] mt-6 sm:mt-8">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-2">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-300 mb-2">
                 Search Results for "{searchQuery}"
               </h2>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
@@ -492,7 +492,7 @@ const Home: React.FC = () => {
             {getAllArticles().length === 0 ? (
               <div className="text-center p-8 sm:p-12">
                 <div className="text-4xl sm:text-6xl mb-4">🔍</div>
-                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-800 dark:text-white">No results found</h3>
+                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-800 dark:text-gray-300">No results found</h3>
                 <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4">Try different keywords or check your spelling</p>
                 <Button
                   onClick={() => setSearchQuery('')}
@@ -530,7 +530,7 @@ const Home: React.FC = () => {
                           {formatDate(article.publicationDate)}
                         </div>
                       </div>
-                      <CardTitle className="text-base sm:text-lg font-bold line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200 leading-tight">
+                      <CardTitle className="text-base sm:text-lg font-bold line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200 leading-tight text-gray-900 dark:text-gray-300">
                         {highlightSearchTerm(Array.isArray(article.title) ? article.title[0] : article.title, searchQuery)}
                       </CardTitle>
                     </CardHeader>
@@ -630,7 +630,7 @@ const Home: React.FC = () => {
                                         {formatDate(article.publicationDate)}
                                       </div>
                                     </div>
-                                    <CardTitle className="text-base font-bold line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200 leading-tight">
+                                    <CardTitle className="text-base font-bold line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200 leading-tight text-gray-900 dark:text-gray-300">
                                       {Array.isArray(article.title) ? article.title[0] : article.title}
                                     </CardTitle>
                                   </CardHeader>
@@ -765,7 +765,7 @@ const Home: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight text-gray-900 dark:text-white">
+                  <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight text-gray-900 dark:text-gray-300">
                     {Array.isArray(selectedArticle.title) ? selectedArticle.title[0] : selectedArticle.title}
                   </DialogTitle>
                 </DialogHeader>

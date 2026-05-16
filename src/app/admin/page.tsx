@@ -315,7 +315,7 @@ const AdminConsole: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-300">
                         {journal.journalName}
                       </h3>
                       <Badge variant={journal.type === 'sciencedirect' ? 'default' : 'secondary'}>

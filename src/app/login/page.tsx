@@ -16,12 +16,12 @@ export default function LoginPage() {
               SciJournal Digest
             </CardTitle>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Sign in to personalize your feed and continue to onboarding.
+              Sign in to personalize your feed and continue to your profile.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button
-              onClick={() => signIn('google', { callbackUrl: '/onboarding' })}
+              onClick={() => signIn('google', { callbackUrl: '/profile' })}
               className="w-full flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -33,7 +33,7 @@ export default function LoginPage() {
               Continue with Google
             </Button>
             <Button
-              onClick={() => signIn('github', { callbackUrl: '/onboarding' })}
+              onClick={() => signIn('github', { callbackUrl: '/profile' })}
               variant="outline"
               className="w-full flex items-center justify-center gap-2"
             >
