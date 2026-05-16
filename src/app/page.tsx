@@ -9,7 +9,7 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from '@/components/ui/dialog';
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/components/ui/accordion';
-import {Search, Calendar, ExternalLink, Moon, Sun} from 'lucide-react';
+import {Search, Calendar, ExternalLink, LogOut, Moon, Settings, Sun} from 'lucide-react';
 import FloatingTriangles from '@/components/FloatingTriangles';
 import HeaderParticles from '@/components/HeaderParticles';
 
@@ -80,6 +80,7 @@ const Home: React.FC = () => {
   const [modalVotes, setModalVotes] = useState<number | null>(null);
   const itemRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const headerHeight = 140; // px, optimized for mobile
+  const userInitial = (session?.user?.name?.trim()?.[0] || session?.user?.email?.trim()?.[0] || 'R').toUpperCase();
 
   const systemPrefersDark = useSyncExternalStore(
     subscribeToSystemTheme,
@@ -288,40 +289,48 @@ const Home: React.FC = () => {
         <HeaderParticles />
         <div className={`container mx-auto px-3 sm:px-4 ${isScrolled ? 'py-2' : 'py-4 sm:py-5 md:py-7'} relative z-20 pointer-events-none transition-[padding] duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]`}>
           <div className="flex items-center justify-end pointer-events-auto mb-2 sm:mb-3">
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={toggleTheme}
-                className="rounded-full px-3 sm:px-4 border-border bg-background/90 text-foreground shadow-lg hover:bg-background"
-                aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {!session?.user ? (
                 <Button
                   onClick={() => signIn(undefined, { callbackUrl: '/onboarding' })}
-                  className="rounded-full px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all max-w-[48vw] truncate"
+                  size="icon"
+                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all"
+                  aria-label="Sign in"
+                  title="Sign in"
                 >
-                  Personalize
+                  <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               ) : (
                 <>
-                  <Button asChild className="rounded-full px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all max-w-[48vw] truncate">
-                    <a href="/profile" title="Personalize feed" aria-label="Personalize feed" className="truncate">
-                      {userDisplayName}
+                  <Button asChild size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all">
+                    <a href="/profile" title={userDisplayName} aria-label={`Open profile for ${userDisplayName}`} className="flex items-center justify-center text-[10px] sm:text-sm font-semibold">
+                      {userInitial}
                     </a>
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
+                    size="icon"
                     onClick={() => signOut({ callbackUrl: '/' })}
-                    className="rounded-full px-3 py-2 text-sm sm:px-4 sm:py-2.5 sm:text-base border-gray-200 bg-white/90 text-gray-700 shadow-none hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200 dark:hover:bg-gray-800"
+                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-gray-200 bg-white/90 text-gray-700 shadow-none hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200 dark:hover:bg-gray-800"
+                    aria-label="Sign out"
+                    title="Sign out"
                   >
-                    Logout
+                    <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Button>
                 </>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={toggleTheme}
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-border bg-background/90 text-foreground shadow-lg hover:bg-background"
+                aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {isDarkMode ? <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+              </Button>
             </div>
           </div>
           {/* Title Row */}
