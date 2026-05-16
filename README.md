@@ -1,4 +1,6 @@
-# SciJournal Digest
+<img width="2752" height="1536" alt="sciJournalReadMe_Eng" src="https://github.com/user-attachments/assets/f6b62070-da9e-491f-8ec0-23333075cca9" />
+
+## SciJournal Digest
 
 SciJournal Digest is a personalized scientific journal reader built with Next.js. It aggregates journal RSS feeds, lets users choose which journals they want on the home screen, and supports article upvoting with a highlighted feed.
 
