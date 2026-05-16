@@ -290,36 +290,6 @@ const Home: React.FC = () => {
         <div className={`container mx-auto px-3 sm:px-4 ${isScrolled ? 'py-2' : 'py-4 sm:py-5 md:py-7'} relative z-20 pointer-events-none transition-[padding] duration-700 md:duration-600 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)]`}>
           <div className="flex items-center justify-end pointer-events-auto mb-2 sm:mb-3">
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {!session?.user ? (
-                <Button
-                  onClick={() => signIn(undefined, { callbackUrl: '/onboarding' })}
-                  size="icon"
-                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all"
-                  aria-label="Sign in"
-                  title="Sign in"
-                >
-                  <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </Button>
-              ) : (
-                <>
-                  <Button asChild size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all">
-                    <a href="/profile" title={userDisplayName} aria-label={`Open profile for ${userDisplayName}`} className="flex items-center justify-center text-[10px] sm:text-sm font-semibold">
-                      {userInitial}
-                    </a>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => signOut({ callbackUrl: '/' })}
-                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-gray-200 bg-white/90 text-gray-700 shadow-none hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200 dark:hover:bg-gray-800"
-                    aria-label="Sign out"
-                    title="Sign out"
-                  >
-                    <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </Button>
-                </>
-              )}
               <Button
                 type="button"
                 variant="outline"
@@ -331,6 +301,39 @@ const Home: React.FC = () => {
               >
                 {isDarkMode ? <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
               </Button>
+
+              <div className="flex flex-col items-center gap-1">
+                {!session?.user ? (
+                  <Button
+                    onClick={() => signIn(undefined, { callbackUrl: '/onboarding' })}
+                    size="icon"
+                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all"
+                    aria-label="Sign in"
+                    title="Sign in"
+                  >
+                    <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </Button>
+                ) : (
+                  <>
+                    <Button asChild size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all">
+                      <a href="/profile" title={userDisplayName} aria-label={`Open profile for ${userDisplayName}`} className="flex items-center justify-center text-[10px] sm:text-sm font-semibold">
+                        {userInitial}
+                      </a>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => signOut({ callbackUrl: '/' })}
+                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-gray-200 bg-white/90 text-gray-700 shadow-none hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200 dark:hover:bg-gray-800"
+                      aria-label="Sign out"
+                      title="Sign out"
+                    >
+                      <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           {/* Title Row */}
