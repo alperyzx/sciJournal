@@ -8,10 +8,10 @@ const providers = [
     clientId: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
   }),
-  process.env.GITHUB_ID && process.env.GITHUB_SECRET
+  (process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID) && (process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_SECRET)
     ? GitHubProvider({
-        clientId: process.env.GITHUB_ID,
-        clientSecret: process.env.GITHUB_SECRET,
+        clientId: process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_SECRET,
       })
     : null,
 ].filter(Boolean) as NonNullable<NextAuthOptions['providers']>[number][];

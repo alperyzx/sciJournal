@@ -28,11 +28,27 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
+            function applySystemTheme() {
+              try {
+                var mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                document.documentElement.classList.toggle('dark', mediaQuery.matches);
+              } catch (e) {}
+            }
+
             try {
-              var theme = localStorage.getItem('scijournal-theme');
-              var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-              var useDark = theme ? theme === 'dark' : systemDark;
-              document.documentElement.classList.toggle('dark', useDark);
+              applySystemTheme();
+
+              var mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+              if (typeof mediaQuery.addEventListener === 'function') {
+                mediaQuery.addEventListener('change', applySystemTheme);
+              } else if (typeof mediaQuery.addListener === 'function') {
+                mediaQuery.addListener(applySystemTheme);
+              }
+
+              window.addEventListener('focus', applySystemTheme);
+              document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) applySystemTheme();
+              });
             } catch (e) {}
           })();
         ` }} />

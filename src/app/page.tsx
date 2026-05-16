@@ -1,7 +1,7 @@
 'use client';
 
-import {useEffect, useState, useRef} from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import {useEffect, useState, useRef, useSyncExternalStore} from 'react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import axios from 'axios';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
@@ -37,11 +37,34 @@ interface ArticleGroup {
 
 const ARTICLES_PER_PAGE = 6;
 
+function subscribeToSystemTheme(onStoreChange: () => void) {
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const handler = () => onStoreChange();
+
+  if (typeof mediaQuery.addEventListener === 'function') {
+    mediaQuery.addEventListener('change', handler);
+  } else {
+    mediaQuery.addListener(handler);
+  }
+
+  return () => {
+    if (typeof mediaQuery.removeEventListener === 'function') {
+      mediaQuery.removeEventListener('change', handler);
+    } else {
+      mediaQuery.removeListener(handler);
+    }
+  };
+}
+
+function getSystemThemeSnapshot() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
 const Home: React.FC = () => {
   const { data: session } = useSession();
   const [highlighted, setHighlighted] = useState<HighlightedArticle[]>([]);
   const [upvoteLoading, setUpvoteLoading] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>('system');
   const [journalsList, setJournalsList] = useState<string[]>(() => feeds.map((f: { journalName: string }) => f.journalName));
   const userDisplayName = session?.user?.name?.trim() || session?.user?.email?.split('@')[0] || 'Reader';
   // Per-journal state
@@ -52,46 +75,25 @@ const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedJournal, setSelectedJournal] = useState<string | null>(null);
+  const [modalVotes, setModalVotes] = useState<number | null>(null);
   const itemRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const headerHeight = 140; // px, optimized for mobile
 
+  const systemPrefersDark = useSyncExternalStore(
+    subscribeToSystemTheme,
+    getSystemThemeSnapshot,
+    () => false
+  );
+  const isDarkMode = themePreference === 'system' ? systemPrefersDark : themePreference === 'dark';
+
   useEffect(() => {
     const html = document.documentElement;
-    const storedTheme = window.localStorage.getItem('scijournal-theme');
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const useDark = storedTheme ? storedTheme === 'dark' : systemDark;
-
-    html.classList.toggle('dark', useDark);
-    setIsDarkMode(useDark);
-
-    const handleStorage = () => {
-      const nextTheme = window.localStorage.getItem('scijournal-theme');
-      const nextDark = nextTheme ? nextTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      html.classList.toggle('dark', nextDark);
-      setIsDarkMode(nextDark);
-    };
-
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleSystemChange = () => {
-      if (window.localStorage.getItem('scijournal-theme')) return;
-      const nextDark = mq.matches;
-      html.classList.toggle('dark', nextDark);
-      setIsDarkMode(nextDark);
-    };
-
-    window.addEventListener('storage', handleStorage);
-    mq.addEventListener('change', handleSystemChange);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      mq.removeEventListener('change', handleSystemChange);
-    };
-  }, []);
+    html.classList.toggle('dark', isDarkMode);
+  }, [isDarkMode]);
 
   const toggleTheme = () => {
     const nextDark = !isDarkMode;
-    setIsDarkMode(nextDark);
-    document.documentElement.classList.toggle('dark', nextDark);
-    window.localStorage.setItem('scijournal-theme', nextDark ? 'dark' : 'light');
+    setThemePreference(nextDark ? 'dark' : 'light');
   };
 
   // Global loading state for all journals
@@ -157,6 +159,18 @@ const Home: React.FC = () => {
     } catch (e) {}
     return journalsList;
   })();
+
+  useEffect(() => {
+    if (!selectedArticle) {
+      setModalVotes(null);
+      return;
+    }
+    const title = Array.isArray(selectedArticle.title) ? selectedArticle.title[0] : selectedArticle.title;
+    const pub = selectedArticle.publicationDate;
+    const journal = selectedJournal;
+    const found = highlighted.find(h => h.title === title && h.publicationDate === pub && h.journalName === journal);
+    setModalVotes(found ? found.votes : null);
+  }, [selectedArticle, highlighted, selectedJournal]);
 
   // Filtered articles based on search
   const getFilteredArticles = (journalArticles: Article[], journalName: string) => {
@@ -292,17 +306,27 @@ const Home: React.FC = () => {
               </Button>
               {!session?.user ? (
                 <Button
-                  onClick={() => signIn('google', { callbackUrl: '/onboarding' })}
-                  className="rounded-full px-4 sm:px-5 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-teal-600 transition-all"
+                  onClick={() => signIn(undefined, { callbackUrl: '/onboarding' })}
+                  className="rounded-full px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all max-w-[48vw] truncate"
                 >
                   Personalize
                 </Button>
               ) : (
-                <Button asChild className="rounded-full px-4 sm:px-5 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-teal-600 transition-all">
-                  <a href="/profile" title="Personalize feed" aria-label="Personalize feed">
-                    {userDisplayName}
-                  </a>
-                </Button>
+                <>
+                  <Button asChild className="rounded-full px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all max-w-[48vw] truncate">
+                    <a href="/profile" title="Personalize feed" aria-label="Personalize feed" className="truncate">
+                      {userDisplayName}
+                    </a>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="rounded-full px-3 py-2 text-sm sm:px-4 sm:py-2.5 sm:text-base border-gray-200 bg-white/90 text-gray-700 shadow-none hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    Logout
+                  </Button>
+                </>
               )}
             </div>
           </div>
@@ -737,7 +761,13 @@ const Home: React.FC = () => {
                     <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300">{Array.isArray(selectedArticle.description) ? selectedArticle.description[0] : selectedArticle.description}</p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600 dark:text-gray-300">Votes: <span id="modal-votes">—</span></div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                      {modalVotes !== null ? (
+                        <>Votes: <span id="modal-votes">{modalVotes}</span></>
+                      ) : (
+                        <span className="invisible">Votes: <span id="modal-votes">—</span></span>
+                      )}
+                    </div>
                     <div>
                       <Button
                         size="sm"
@@ -754,12 +784,11 @@ const Home: React.FC = () => {
                           setHighlighted((r2.data || []) as HighlightedArticle[]);
                           // update modal votes
                           const votes = res.data?.votes ?? null;
-                          const el = document.getElementById('modal-votes');
-                          if (el && votes !== null) el.textContent = String(votes);
+                          if (votes !== null) setModalVotes(votes);
                         } catch (e) {
                           // ignore
                         } finally { setUpvoteLoading(false); }
-                      }} disabled={upvoteLoading}>{highlighted.find(item => item.title === (Array.isArray(selectedArticle.title) ? selectedArticle.title[0] : selectedArticle.title) && item.publicationDate === selectedArticle.publicationDate && item.journalName === selectedJournal)?.upvoted ? 'Upvoted' : 'Upvote'}</Button>
+                        }} disabled={upvoteLoading}>{highlighted.find(item => item.title === (Array.isArray(selectedArticle.title) ? selectedArticle.title[0] : selectedArticle.title) && item.publicationDate === selectedArticle.publicationDate && item.journalName === selectedJournal)?.upvoted ? 'Upvoted' : 'Upvote'}</Button>
                     </div>
                   </div>
                   <div className="flex justify-end pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -793,12 +822,14 @@ const Home: React.FC = () => {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 font-semibold">
               SciJournal Digest
             </span>
-            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
               <span className="text-gray-500 dark:text-gray-400">© 2025</span>
               {session?.user?.role === 'admin' && (
                 <a href="/admin" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Admin</a>
               )}
-              <a href="https://github.com/alperyzx/sciJournal/tree/triz" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
+              <a href="https://github.com/alperyzx/sciJournal" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
+              <a href="/privacy" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy</a>
+              <a href="/terms" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms</a>
             </div>
           </div>
         </div>
