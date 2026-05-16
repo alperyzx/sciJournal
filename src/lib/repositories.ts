@@ -29,6 +29,45 @@ export interface AuthUserDocument {
 
 export type JournalInput = Omit<JournalDocument, '_id' | 'createdAt' | 'updatedAt'>;
 
+export interface RssArticle {
+  title: string;
+  link: string;
+  description: string;
+  publicationDate: string;
+}
+
+export interface RssArticleGroup {
+  journalName: string;
+  articles: RssArticle[];
+}
+
+const RSS_CACHE_TTL = 60 * 60 * 1000;
+
+let journalCache: JournalDocument[] | null = null;
+let journalCacheVersion = 0;
+let rssCache: { data: RssArticleGroup[]; timestamp: number; journalVersion: number } | null = null;
+
+export function invalidateJournalCaches(): void {
+  journalCache = null;
+  journalCacheVersion += 1;
+  rssCache = null;
+}
+
+export function getCachedRssData(): RssArticleGroup[] | null {
+  if (!rssCache) return null;
+  if (Date.now() - rssCache.timestamp >= RSS_CACHE_TTL) return null;
+  if (rssCache.journalVersion !== journalCacheVersion) return null;
+  return rssCache.data;
+}
+
+export function setCachedRssData(data: RssArticleGroup[]): void {
+  rssCache = {
+    data,
+    timestamp: Date.now(),
+    journalVersion: journalCacheVersion,
+  };
+}
+
 function sortJournalsByOrder(journals: JournalDocument[]): JournalDocument[] {
   return [...journals].sort((a, b) => {
     const aOrder = typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
@@ -155,9 +194,14 @@ export async function updateAuthUserProfileById(userId: string, patch: { name?: 
 }
 
 export async function listJournals(): Promise<JournalDocument[]> {
+  if (journalCache) {
+    return [...journalCache];
+  }
+
   const db = await getDb();
   const journals = await db.collection<JournalDocument>('journals').find({}).toArray();
-  return sortJournalsByOrder(journals);
+  journalCache = sortJournalsByOrder(journals);
+  return [...journalCache];
 }
 
 export async function listVisibleJournals(): Promise<JournalDocument[]> {
@@ -181,6 +225,7 @@ export async function seedJournalsIfEmpty(seedData: JournalInput[]): Promise<Jou
         updatedAt: now,
       }))
     );
+    invalidateJournalCaches();
     return listJournals();
   }
 
@@ -205,6 +250,7 @@ export async function createJournal(input: JournalInput): Promise<JournalDocumen
   };
 
   await journals.insertOne(record);
+  invalidateJournalCaches();
   return record;
 }
 
@@ -227,6 +273,10 @@ export async function updateJournal(input: JournalInput): Promise<JournalDocumen
     { returnDocument: 'after' }
   );
 
+  if (result) {
+    invalidateJournalCaches();
+  }
+
   return result;
 }
 
@@ -234,6 +284,11 @@ export async function deleteJournal(journalName: string): Promise<boolean> {
   const db = await getDb();
   const journals = db.collection<JournalDocument>('journals');
   const result = await journals.deleteOne({ journalName });
+
+  if (result.deletedCount > 0) {
+    invalidateJournalCaches();
+  }
+
   return result.deletedCount > 0;
 }
 
@@ -288,10 +343,31 @@ export async function findOrCreateArticle(input: {
   return record;
 }
 
+async function decrementArticleVoteCountAndCleanup(articleId: string): Promise<number> {
+  const db = await getDb();
+  const articles = db.collection<ArticleDocument>('articles');
+  const articleObjectId = new ObjectId(articleId);
+  const now = new Date();
+
+  await articles.updateOne(
+    { _id: articleObjectId },
+    { $inc: { voteCount: -1 }, $set: { updatedAt: now } }
+  );
+
+  const updatedArticle = await articles.findOne({ _id: articleObjectId });
+  const voteCount = updatedArticle?.voteCount ?? 0;
+
+  if (voteCount <= 0) {
+    await articles.deleteOne({ _id: articleObjectId });
+    return 0;
+  }
+
+  return voteCount;
+}
+
 export async function toggleVote(userId: string, articleId: string, userEmail?: string): Promise<{ upvoted: boolean; votes: number }> {
   const db = await getDb();
   const votes = db.collection<VoteDocument>('votes');
-  const articles = db.collection<ArticleDocument>('articles');
   const artObjectId = new ObjectId(articleId);
   const userObjectId = new ObjectId(userId);
   const normalizedEmail = userEmail?.toLowerCase();
@@ -305,14 +381,13 @@ export async function toggleVote(userId: string, articleId: string, userEmail?: 
   });
   if (existing) {
     await votes.deleteOne({ _id: existing._id });
-    // decrement
-    await articles.updateOne({ _id: artObjectId }, { $inc: { voteCount: -1 }, $set: { updatedAt: new Date() } });
-    const a = await articles.findOne({ _id: artObjectId });
-    return { upvoted: false, votes: a?.voteCount ?? 0 };
+    const votesRemaining = await decrementArticleVoteCountAndCleanup(articleId);
+    return { upvoted: false, votes: votesRemaining };
   }
 
   const now = new Date();
   await votes.insertOne({ userId: userObjectId, ...(normalizedEmail ? { userEmail: normalizedEmail } : {}), articleId: artObjectId, createdAt: now });
+  const articles = db.collection<ArticleDocument>('articles');
   await articles.updateOne({ _id: artObjectId }, { $inc: { voteCount: 1 }, $set: { updatedAt: now } });
   const a = await articles.findOne({ _id: artObjectId });
   return { upvoted: true, votes: a?.voteCount ?? 0 };
@@ -410,7 +485,15 @@ export async function deleteAuthUserById(userId: string, userEmail?: string): Pr
     // Decrement voteCount for each article referenced by the user's votes
     for (const aid of articleIds) {
       try {
-        await articles.updateOne({ _id: aid }, { $inc: { voteCount: -1 }, $set: { updatedAt: new Date() } });
+        const article = await articles.findOne({ _id: aid });
+        if (!article) continue;
+
+        const nextCount = (article.voteCount ?? 0) - 1;
+        if (nextCount <= 0) {
+          await articles.deleteOne({ _id: aid });
+        } else {
+          await articles.updateOne({ _id: aid }, { $inc: { voteCount: -1 }, $set: { updatedAt: new Date() } });
+        }
       } catch (e) {
         // ignore individual failures and continue
       }

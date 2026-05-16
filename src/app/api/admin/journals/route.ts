@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import defaultFeeds from '../../rss/feeds';
+import { defaultJournals } from '@/lib/default-journals';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createJournal, deleteJournal, listJournals, seedJournalsIfEmpty, updateJournal, type JournalInput } from '@/lib/repositories';
@@ -33,7 +33,7 @@ export async function GET() {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const feeds = await seedJournalsIfEmpty(defaultFeeds as Journal[]);
+    const feeds = await seedJournalsIfEmpty(defaultJournals as Journal[]);
     return NextResponse.json(feeds.map(serializeJournal));
   } catch (error) {
     return NextResponse.json(
