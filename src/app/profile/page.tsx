@@ -259,7 +259,7 @@ export default function ProfilePage() {
                 <label
                   key={j}
                   className={`flex items-center gap-3 p-3 border rounded-xl transition-all cursor-pointer ${selected.includes(j)
-                    ? 'border-blue-500 bg-blue-50 text-blue-950 shadow-sm dark:border-cyan-400 dark:bg-cyan-950/35 dark:text-cyan-50'
+                    ? 'border-blue-500 bg-blue-50 text-blue-950 shadow-sm dark:border-cyan-400 dark:bg-slate-900 dark:text-slate-100'
                     : 'bg-white/80 dark:bg-gray-950/70 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:border-blue-400 dark:hover:border-cyan-500'
                   }`}
                 >
@@ -267,8 +267,7 @@ export default function ProfilePage() {
                     type="checkbox"
                     checked={selected.includes(j)}
                     onChange={() => toggle(j)}
-                    style={{ accentColor: 'currentColor' }}
-                    className="h-4 w-4 rounded border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900"
+                    className="h-4 w-4 rounded border-gray-300 accent-blue-600 focus:ring-blue-500 dark:[color-scheme:dark] dark:border-gray-700 dark:bg-gray-800 dark:accent-slate-700"
                   />
                   <span className="text-sm leading-snug flex-1">{j}</span>
                 </label>
