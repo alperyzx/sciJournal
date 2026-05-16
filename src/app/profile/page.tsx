@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
@@ -23,6 +23,7 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [journals, setJournals] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [upvotedArticles, setUpvotedArticles] = useState<UpvotedArticle[]>([]);
   const [upvotedLoading, setUpvotedLoading] = useState(false);
@@ -44,6 +45,8 @@ export default function ProfilePage() {
     }
   }, [session, status, router]);
 
+  const isOnboarding = !!(session?.user && !(session.user as any).onboardingComplete);
+
   useEffect(() => {
     if (status !== 'authenticated') return;
     void loadUpvotedArticles();
@@ -60,6 +63,74 @@ export default function ProfilePage() {
 
   const toggle = (name: string) => {
     setSelected(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  };
+
+  const onDragStart = (e: React.DragEvent, index: number) => {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', String(index)); } catch (err) {}
+  };
+
+  const onDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const onDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    const from = dragIndex ?? Number(e.dataTransfer.getData('text/plain'));
+    if (isNaN(from)) return setDragIndex(null);
+    if (from === index) return setDragIndex(null);
+    setSelected(prev => {
+      const arr = [...prev];
+      const [item] = arr.splice(from, 1);
+      arr.splice(index, 0, item);
+      return arr;
+    });
+    setDragIndex(null);
+  };
+
+  const onDragEnd = () => {
+    setDragIndex(null);
+  };
+
+  // Touch / swipe-to-remove state
+  const touchStartX = useRef<number | null>(null);
+  const touchActiveIndex = useRef<number | null>(null);
+  const [touchTranslate, setTouchTranslate] = useState<Record<number, number>>({});
+
+  const onTouchStart = (e: React.TouchEvent, idx: number) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchActiveIndex.current = idx;
+    setTouchTranslate(prev => ({ ...prev, [idx]: 0 }));
+  };
+
+  const onTouchMove = (e: React.TouchEvent, idx: number) => {
+    if (touchActiveIndex.current !== idx) return;
+    const cur = e.touches[0].clientX;
+    const start = touchStartX.current ?? cur;
+    const delta = cur - start; // positive = right, negative = left
+    if (delta < 0) {
+      setTouchTranslate(prev => ({ ...prev, [idx]: Math.max(delta, -200) }));
+    }
+  };
+
+  const onTouchEnd = (e: React.TouchEvent, idx: number) => {
+    const translate = touchTranslate[idx] ?? 0;
+    touchStartX.current = null;
+    touchActiveIndex.current = null;
+    if (translate <= -80) {
+      // remove item
+      setSelected(prev => prev.filter((_, i) => i !== idx));
+      // clean up translate map
+      setTouchTranslate(prev => {
+        const next = { ...prev };
+        delete next[idx];
+        return next;
+      });
+    } else {
+      setTouchTranslate(prev => ({ ...prev, [idx]: 0 }));
+    }
   };
 
   const refreshUpvotedArticles = async () => {
@@ -158,40 +229,104 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen flex items-start justify-center px-4 py-12 bg-gradient-to-br from-slate-50 via-white to-cyan-50 text-foreground dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
       <div className="w-full max-w-3xl bg-white/95 dark:bg-gray-900/95 p-8 rounded-2xl shadow-lg border border-gray-200/70 dark:border-gray-700/70 backdrop-blur-sm">
-        <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Profile & Preferences</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Update your display name and choose the journals you want on your home screen.</p>
+        {isOnboarding ? (
+          <>
+            <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-300">Welcome — set your profile</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Select and order journals you want to see on your home screen.</p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-300">Profile & Preferences</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Update your display name and choose the journals you want on your home screen.</p>
+          </>
+        )}
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Display name</label>
-            <Input value={name} onChange={e => setName(e.target.value)} className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500" />
+            <Input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="w-full sm:w-1/2 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+            />
           </div>
           <div>
-            <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Selected journals</h2>
+            <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-300">Selected journals</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {journals.map(j => (
                 <label key={j} className="flex items-center gap-3 p-3 border rounded-xl bg-white/80 dark:bg-gray-950/70 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:border-blue-400 dark:hover:border-cyan-500 transition-colors cursor-pointer">
-                  <input type="checkbox" checked={selected.includes(j)} onChange={() => toggle(j)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900" />
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(j)}
+                    onChange={() => toggle(j)}
+                    style={{ accentColor: 'currentColor' }}
+                    className="h-4 w-4 rounded border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900"
+                  />
                   <span className="text-sm leading-snug">{j}</span>
                 </label>
               ))}
             </div>
           </div>
+          <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-300">Order selected journals</h3>
+            {selected.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No journals selected yet.</p>
+            ) : (
+              <ul className="space-y-2">
+                {selected.map((name, idx) => {
+                  const translate = touchTranslate[idx] ?? 0;
+                  const removeOpacity = Math.min(Math.abs(translate) / 80, 1);
+                  return (
+                    <div key={name} className="relative">
+                      <div
+                        className="absolute inset-0 flex items-center justify-end pr-4 text-red-400 select-none pointer-events-none"
+                        style={{ opacity: removeOpacity, transform: `translateX(${Math.min(40, Math.abs(translate) / 2)}px)` }}
+                      >
+                        Remove
+                      </div>
+                      <li
+                        className={`relative flex items-center justify-between p-2 border rounded bg-transparent ${dragIndex === idx ? 'opacity-70' : ''}`}
+                        draggable
+                        onDragStart={(e) => onDragStart(e, idx)}
+                        onDragOver={(e) => onDragOver(e, idx)}
+                        onDrop={(e) => onDrop(e, idx)}
+                        onDragEnd={onDragEnd}
+                        aria-grabbed={dragIndex === idx}
+                        onTouchStart={(e) => onTouchStart(e, idx)}
+                        onTouchMove={(e) => onTouchMove(e, idx)}
+                        onTouchEnd={(e) => onTouchEnd(e, idx)}
+                        style={{
+                          transform: `translateX(${translate}px)`,
+                          transition: translate ? 'none' : 'transform 180ms ease',
+                        }}
+                      >
+                        <span>{name}</span>
+                        <div className="text-sm text-gray-400">Drag</div>
+                      </li>
+                    </div>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
           <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push('/')}
-              className="rounded-full px-6 border-gray-200 bg-white/80 text-gray-700 shadow-none hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-950/60 dark:text-gray-200 dark:hover:bg-gray-900"
-            >
-              Back
-            </Button>
+            {!isOnboarding && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push('/')}
+                className="rounded-full px-6 border-gray-200 bg-white/80 text-gray-700 shadow-none hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-950/60 dark:text-gray-200 dark:hover:bg-gray-900"
+              >
+                Back
+              </Button>
+            )}
+
             <Button onClick={save} disabled={loading} className="rounded-full px-6 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:from-blue-700 hover:to-teal-600">
-              Save
+              {isOnboarding ? 'Save and continue' : 'Save'}
             </Button>
           </div>
 
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Upvoted articles</h2>
+            <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-300">Upvoted articles</h2>
             {upvotedLoading && upvotedArticles.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">Loading your upvoted articles...</p>
             ) : upvotedArticles.length === 0 ? (
@@ -266,7 +401,7 @@ export default function ProfilePage() {
       }}>
         <AlertDialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900 dark:text-white">Remove this article from your upvoted list?</AlertDialogTitle>
+            <AlertDialogTitle className="text-gray-900 dark:text-gray-300">Remove this article from your upvoted list?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
               This will unvote the article and remove it from your saved upvoted articles section.
             </AlertDialogDescription>
@@ -285,7 +420,7 @@ export default function ProfilePage() {
       }}>
         <AlertDialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900 dark:text-white">Delete your account?</AlertDialogTitle>
+            <AlertDialogTitle className="text-gray-900 dark:text-gray-300">Delete your account?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
               This will permanently delete your account and remove any upvotes you've made. This action cannot be undone. To confirm, answer the following question.
             </AlertDialogDescription>

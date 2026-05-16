@@ -2,7 +2,7 @@
 
 ## Product Summary
 
-SciJournal Digest is a personalized scientific journal reader. Users can sign in with Google or GitHub, complete onboarding, choose and order journals, upvote articles, and browse a highlighted feed.
+SciJournal Digest is a personalized scientific journal reader. Users can sign in with Google or GitHub, complete profile setup, choose and order journals, upvote articles, and browse a highlighted feed.
 
 ## Current Core Features
 
