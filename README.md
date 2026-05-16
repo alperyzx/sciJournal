@@ -59,8 +59,6 @@ Set the required auth and database environment variables for local development:
 ```bash
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GITHUB_ID=
-GITHUB_SECRET=
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 NEXTAUTH_SECRET=
