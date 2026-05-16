@@ -19,7 +19,7 @@ const providers = [
 export const authOptions: NextAuthOptions = {
   providers,
   pages: {
-    signIn: '/admin',
+    signIn: '/login',
   },
   callbacks: {
     async signIn({ user, account }) {
