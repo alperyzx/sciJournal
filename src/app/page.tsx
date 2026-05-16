@@ -439,7 +439,7 @@ const Home: React.FC = () => {
                           onClick={async (e) => {
                           // prevent card click opening modal
                           e.stopPropagation();
-                          if (!session?.user?.email) return window.location.assign('/admin');
+                          if (!session?.user?.email) return window.location.assign('/login');
                           setUpvoteLoading(true);
                           try {
                             await axios.post('/api/articles/upvote', { articleId: a.id });
@@ -774,7 +774,7 @@ const Home: React.FC = () => {
                         variant="outline"
                         className="h-7 px-2.5 text-[11px] font-medium border-gray-200 bg-white/70 text-gray-600 shadow-none hover:bg-gray-100 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
                         onClick={async () => {
-                        if (!session?.user?.email) return window.location.assign('/admin');
+                        if (!session?.user?.email) return window.location.assign('/login');
                         setUpvoteLoading(true);
                         try {
                           const payload = { journalName: selectedJournal, title: Array.isArray(selectedArticle.title) ? selectedArticle.title[0] : selectedArticle.title, publicationDate: selectedArticle.publicationDate, link: selectedArticle.link, description: Array.isArray(selectedArticle.description) ? selectedArticle.description[0] : selectedArticle.description };
@@ -824,9 +824,6 @@ const Home: React.FC = () => {
             </span>
               <div className="flex items-center gap-2 sm:gap-4">
               <span className="text-gray-500 dark:text-gray-400">© 2025</span>
-              {session?.user?.role === 'admin' && (
-                <a href="/admin" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Admin</a>
-              )}
               <a href="https://github.com/alperyzx/sciJournal" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
               <a href="/privacy" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy</a>
               <a href="/terms" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms</a>
