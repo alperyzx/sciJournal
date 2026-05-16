@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState, useRef} from 'react';
+import {useEffect, useState, useRef, useSyncExternalStore} from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import axios from 'axios';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
@@ -37,11 +37,34 @@ interface ArticleGroup {
 
 const ARTICLES_PER_PAGE = 6;
 
+function subscribeToSystemTheme(onStoreChange: () => void) {
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const handler = () => onStoreChange();
+
+  if (typeof mediaQuery.addEventListener === 'function') {
+    mediaQuery.addEventListener('change', handler);
+  } else {
+    mediaQuery.addListener(handler);
+  }
+
+  return () => {
+    if (typeof mediaQuery.removeEventListener === 'function') {
+      mediaQuery.removeEventListener('change', handler);
+    } else {
+      mediaQuery.removeListener(handler);
+    }
+  };
+}
+
+function getSystemThemeSnapshot() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
 const Home: React.FC = () => {
   const { data: session } = useSession();
   const [highlighted, setHighlighted] = useState<HighlightedArticle[]>([]);
   const [upvoteLoading, setUpvoteLoading] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>('system');
   const [journalsList, setJournalsList] = useState<string[]>(() => feeds.map((f: { journalName: string }) => f.journalName));
   const userDisplayName = session?.user?.name?.trim() || session?.user?.email?.split('@')[0] || 'Reader';
   // Per-journal state
@@ -55,43 +78,21 @@ const Home: React.FC = () => {
   const itemRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const headerHeight = 140; // px, optimized for mobile
 
+  const systemPrefersDark = useSyncExternalStore(
+    subscribeToSystemTheme,
+    getSystemThemeSnapshot,
+    () => false
+  );
+  const isDarkMode = themePreference === 'system' ? systemPrefersDark : themePreference === 'dark';
+
   useEffect(() => {
     const html = document.documentElement;
-    const storedTheme = window.localStorage.getItem('scijournal-theme');
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const useDark = storedTheme ? storedTheme === 'dark' : systemDark;
-
-    html.classList.toggle('dark', useDark);
-    setIsDarkMode(useDark);
-
-    const handleStorage = () => {
-      const nextTheme = window.localStorage.getItem('scijournal-theme');
-      const nextDark = nextTheme ? nextTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      html.classList.toggle('dark', nextDark);
-      setIsDarkMode(nextDark);
-    };
-
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleSystemChange = () => {
-      if (window.localStorage.getItem('scijournal-theme')) return;
-      const nextDark = mq.matches;
-      html.classList.toggle('dark', nextDark);
-      setIsDarkMode(nextDark);
-    };
-
-    window.addEventListener('storage', handleStorage);
-    mq.addEventListener('change', handleSystemChange);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      mq.removeEventListener('change', handleSystemChange);
-    };
-  }, []);
+    html.classList.toggle('dark', isDarkMode);
+  }, [isDarkMode]);
 
   const toggleTheme = () => {
     const nextDark = !isDarkMode;
-    setIsDarkMode(nextDark);
-    document.documentElement.classList.toggle('dark', nextDark);
-    window.localStorage.setItem('scijournal-theme', nextDark ? 'dark' : 'light');
+    setThemePreference(nextDark ? 'dark' : 'light');
   };
 
   // Global loading state for all journals
@@ -293,13 +294,13 @@ const Home: React.FC = () => {
               {!session?.user ? (
                 <Button
                   onClick={() => signIn('google', { callbackUrl: '/onboarding' })}
-                  className="rounded-full px-4 sm:px-5 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-teal-600 transition-all"
+                  className="rounded-full px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all max-w-[48vw] truncate"
                 >
                   Personalize
                 </Button>
               ) : (
-                <Button asChild className="rounded-full px-4 sm:px-5 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-teal-600 transition-all">
-                  <a href="/profile" title="Personalize feed" aria-label="Personalize feed">
+                <Button asChild className="rounded-full px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all max-w-[48vw] truncate">
+                  <a href="/profile" title="Personalize feed" aria-label="Personalize feed" className="truncate">
                     {userDisplayName}
                   </a>
                 </Button>
@@ -798,7 +799,7 @@ const Home: React.FC = () => {
               {session?.user?.role === 'admin' && (
                 <a href="/admin" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Admin</a>
               )}
-              <a href="https://github.com/alperyzx/sciJournal/tree/triz" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
+              <a href="https://github.com/alperyzx/sciJournal" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
             </div>
           </div>
         </div>
