@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect, useState, useRef, useSyncExternalStore} from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import axios from 'axios';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
@@ -306,17 +306,27 @@ const Home: React.FC = () => {
               </Button>
               {!session?.user ? (
                 <Button
-                  onClick={() => signIn('google', { callbackUrl: '/onboarding' })}
+                  onClick={() => signIn(undefined, { callbackUrl: '/onboarding' })}
                   className="rounded-full px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all max-w-[48vw] truncate"
                 >
                   Personalize
                 </Button>
               ) : (
-                <Button asChild className="rounded-full px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all max-w-[48vw] truncate">
-                  <a href="/profile" title="Personalize feed" aria-label="Personalize feed" className="truncate">
-                    {userDisplayName}
-                  </a>
-                </Button>
+                <>
+                  <Button asChild className="rounded-full px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all max-w-[48vw] truncate">
+                    <a href="/profile" title="Personalize feed" aria-label="Personalize feed" className="truncate">
+                      {userDisplayName}
+                    </a>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="rounded-full px-3 py-2 text-sm sm:px-4 sm:py-2.5 sm:text-base border-gray-200 bg-white/90 text-gray-700 shadow-none hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    Logout
+                  </Button>
+                </>
               )}
             </div>
           </div>
@@ -812,12 +822,14 @@ const Home: React.FC = () => {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300 font-semibold">
               SciJournal Digest
             </span>
-            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
               <span className="text-gray-500 dark:text-gray-400">© 2025</span>
               {session?.user?.role === 'admin' && (
                 <a href="/admin" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Admin</a>
               )}
               <a href="https://github.com/alperyzx/sciJournal" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
+              <a href="/privacy" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy</a>
+              <a href="/terms" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms</a>
             </div>
           </div>
         </div>
