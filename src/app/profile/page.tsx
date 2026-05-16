@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
+import { Check, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -23,7 +24,7 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [journals, setJournals] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragJournal, setDragJournal] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [upvotedArticles, setUpvotedArticles] = useState<UpvotedArticle[]>([]);
   const [upvotedLoading, setUpvotedLoading] = useState(false);
@@ -35,6 +36,7 @@ export default function ProfilePage() {
   const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaQuestion, setCaptchaQuestion] = useState<string | null>(null);
+  const activePointerJournal = useRef<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/');
@@ -65,72 +67,73 @@ export default function ProfilePage() {
     setSelected(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
   };
 
-  const onDragStart = (e: React.DragEvent, index: number) => {
-    setDragIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-    try { e.dataTransfer.setData('text/plain', String(index)); } catch (err) {}
+  const moveSelectedJournal = (fromJournal: string, toJournal: string) => {
+    setSelected(prev => {
+      const fromIndex = prev.indexOf(fromJournal);
+      const toIndex = prev.indexOf(toJournal);
+
+      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+        return prev;
+      }
+
+      const next = [...prev];
+      const [item] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, item);
+      return next;
+    });
   };
 
-  const onDragOver = (e: React.DragEvent, index: number) => {
+  const onDragStart = (e: React.DragEvent, journal: string) => {
+    setDragJournal(journal);
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', journal); } catch (err) {}
+  };
+
+  const onDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const onDrop = (e: React.DragEvent, index: number) => {
+  const onDrop = (e: React.DragEvent, journal: string) => {
     e.preventDefault();
-    const from = dragIndex ?? Number(e.dataTransfer.getData('text/plain'));
-    if (isNaN(from)) return setDragIndex(null);
-    if (from === index) return setDragIndex(null);
-    setSelected(prev => {
-      const arr = [...prev];
-      const [item] = arr.splice(from, 1);
-      arr.splice(index, 0, item);
-      return arr;
-    });
-    setDragIndex(null);
+    const fromJournal = dragJournal ?? e.dataTransfer.getData('text/plain');
+    if (!fromJournal || fromJournal === journal) {
+      setDragJournal(null);
+      return;
+    }
+
+    moveSelectedJournal(fromJournal, journal);
+    setDragJournal(null);
   };
 
   const onDragEnd = () => {
-    setDragIndex(null);
+    setDragJournal(null);
+    activePointerJournal.current = null;
   };
 
-  // Touch / swipe-to-remove state
-  const touchStartX = useRef<number | null>(null);
-  const touchActiveIndex = useRef<number | null>(null);
-  const [touchTranslate, setTouchTranslate] = useState<Record<number, number>>({});
-
-  const onTouchStart = (e: React.TouchEvent, idx: number) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchActiveIndex.current = idx;
-    setTouchTranslate(prev => ({ ...prev, [idx]: 0 }));
+  const onPointerDownJournal = (e: React.PointerEvent<HTMLButtonElement>, journal: string) => {
+    if (e.button !== 0) return;
+    activePointerJournal.current = journal;
+    setDragJournal(journal);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (err) {}
   };
 
-  const onTouchMove = (e: React.TouchEvent, idx: number) => {
-    if (touchActiveIndex.current !== idx) return;
-    const cur = e.touches[0].clientX;
-    const start = touchStartX.current ?? cur;
-    const delta = cur - start; // positive = right, negative = left
-    if (delta < 0) {
-      setTouchTranslate(prev => ({ ...prev, [idx]: Math.max(delta, -200) }));
-    }
+  const onPointerMoveJournal = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const activeJournal = activePointerJournal.current;
+    if (!activeJournal) return;
+
+    const element = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-journal-item]') as HTMLElement | null;
+    const targetJournal = element?.dataset.journalItem;
+    if (!targetJournal || targetJournal === activeJournal) return;
+
+    moveSelectedJournal(activeJournal, targetJournal);
   };
 
-  const onTouchEnd = (e: React.TouchEvent, idx: number) => {
-    const translate = touchTranslate[idx] ?? 0;
-    touchStartX.current = null;
-    touchActiveIndex.current = null;
-    if (translate <= -80) {
-      // remove item
-      setSelected(prev => prev.filter((_, i) => i !== idx));
-      // clean up translate map
-      setTouchTranslate(prev => {
-        const next = { ...prev };
-        delete next[idx];
-        return next;
-      });
-    } else {
-      setTouchTranslate(prev => ({ ...prev, [idx]: 0 }));
-    }
+  const finishPointerDrag = () => {
+    activePointerJournal.current = null;
+    setDragJournal(null);
   };
 
   const refreshUpvotedArticles = async () => {
@@ -253,7 +256,13 @@ export default function ProfilePage() {
             <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-300">Selected journals</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {journals.map(j => (
-                <label key={j} className="flex items-center gap-3 p-3 border rounded-xl bg-white/80 dark:bg-gray-950/70 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:border-blue-400 dark:hover:border-cyan-500 transition-colors cursor-pointer">
+                <label
+                  key={j}
+                  className={`flex items-center gap-3 p-3 border rounded-xl transition-all cursor-pointer ${selected.includes(j)
+                    ? 'border-blue-500 bg-blue-50 text-blue-950 shadow-sm dark:border-cyan-400 dark:bg-cyan-950/35 dark:text-cyan-50'
+                    : 'bg-white/80 dark:bg-gray-950/70 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:border-blue-400 dark:hover:border-cyan-500'
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={selected.includes(j)}
@@ -261,7 +270,7 @@ export default function ProfilePage() {
                     style={{ accentColor: 'currentColor' }}
                     className="h-4 w-4 rounded border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900"
                   />
-                  <span className="text-sm leading-snug">{j}</span>
+                  <span className="text-sm leading-snug flex-1">{j}</span>
                 </label>
               ))}
             </div>
@@ -272,37 +281,36 @@ export default function ProfilePage() {
               <p className="text-sm text-gray-500 dark:text-gray-400">No journals selected yet.</p>
             ) : (
               <ul className="space-y-2">
-                {selected.map((name, idx) => {
-                  const translate = touchTranslate[idx] ?? 0;
-                  const removeOpacity = Math.min(Math.abs(translate) / 80, 1);
+                {selected.map((name) => {
+                  const isDragging = dragJournal === name;
                   return (
-                    <div key={name} className="relative">
-                      <div
-                        className="absolute inset-0 flex items-center justify-end pr-4 text-red-400 select-none pointer-events-none"
-                        style={{ opacity: removeOpacity, transform: `translateX(${Math.min(40, Math.abs(translate) / 2)}px)` }}
+                    <li
+                      key={name}
+                      data-journal-item={name}
+                      className={`relative flex items-center justify-between gap-3 rounded border px-3 py-2 ${isDragging ? 'border-blue-500 bg-blue-50/80 shadow-sm dark:border-cyan-400 dark:bg-cyan-950/25' : 'border-gray-200 bg-white/70 dark:border-gray-700 dark:bg-gray-950/60'}`}
+                      draggable
+                      onDragStart={(e) => onDragStart(e, name)}
+                      onDragOver={onDragOver}
+                      onDrop={(e) => onDrop(e, name)}
+                      onDragEnd={onDragEnd}
+                      aria-grabbed={isDragging}
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{name}</span>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-full border border-transparent px-2 py-1 text-xs font-semibold text-gray-500 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-400 dark:hover:border-cyan-500 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-200"
+                        aria-label={`Drag ${name} to reorder`}
+                        title="Drag to reorder"
+                        style={{ touchAction: 'none' }}
+                        onPointerDown={(e) => onPointerDownJournal(e, name)}
+                        onPointerMove={onPointerMoveJournal}
+                        onPointerUp={finishPointerDrag}
+                        onPointerCancel={finishPointerDrag}
                       >
-                        Remove
-                      </div>
-                      <li
-                        className={`relative flex items-center justify-between p-2 border rounded bg-transparent ${dragIndex === idx ? 'opacity-70' : ''}`}
-                        draggable
-                        onDragStart={(e) => onDragStart(e, idx)}
-                        onDragOver={(e) => onDragOver(e, idx)}
-                        onDrop={(e) => onDrop(e, idx)}
-                        onDragEnd={onDragEnd}
-                        aria-grabbed={dragIndex === idx}
-                        onTouchStart={(e) => onTouchStart(e, idx)}
-                        onTouchMove={(e) => onTouchMove(e, idx)}
-                        onTouchEnd={(e) => onTouchEnd(e, idx)}
-                        style={{
-                          transform: `translateX(${translate}px)`,
-                          transition: translate ? 'none' : 'transform 180ms ease',
-                        }}
-                      >
-                        <span>{name}</span>
-                        <div className="text-sm text-gray-400">Drag</div>
-                      </li>
-                    </div>
+                        <GripVertical className="h-4 w-4" />
+                        <span className="hidden sm:inline">Drag</span>
+                      </button>
+                    </li>
                   );
                 })}
               </ul>
