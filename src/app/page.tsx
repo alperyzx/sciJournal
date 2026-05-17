@@ -143,7 +143,6 @@ const Home: React.FC = () => {
   const [upvoteLoading, setUpvoteLoading] = useState(false);
   const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>('system');
   const [journalsList, setJournalsList] = useState<string[]>([]);
-  const userDisplayName = (localDisplayName ?? session?.user?.name)?.trim() || session?.user?.email?.split('@')[0] || 'Reader';
   // Per-journal state
   const [articles, setArticles] = useState<{ [journal: string]: Article[] }>({});
   const [loading, setLoading] = useState<{ [journal: string]: boolean }>({});
@@ -159,7 +158,8 @@ const Home: React.FC = () => {
   const [showTermsDialog, setShowTermsDialog] = useState(false);
   const itemRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const headerHeight = 140; // px, optimized for mobile
-  const userInitial = (session?.user?.name?.trim()?.[0] || session?.user?.email?.trim()?.[0] || 'R').toUpperCase();
+  const userDisplayName = (localDisplayName ?? session?.user?.name)?.trim() || session?.user?.email?.split('@')[0] || 'Reader';
+  const userInitial = (userDisplayName?.trim()?.[0] || session?.user?.email?.trim()?.[0] || 'R').toUpperCase();
 
   const systemPrefersDark = useSyncExternalStore(
     subscribeToSystemTheme,

@@ -273,7 +273,7 @@ export default function ProfilePanel() {
             </div>
           </div>
           <div>
-            <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-300">Selected journals</h2>
+            <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-300">Select Journals</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {journals.map(j => (
                 <label
@@ -296,7 +296,7 @@ export default function ProfilePanel() {
           </div>
 
           <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-300">Order selected journals</h3>
+            <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-300">Order Your Journals</h3>
             {selected.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">No journals selected yet.</p>
             ) : (
