@@ -68,7 +68,6 @@ export default function ProfilePanel() {
   useEffect(() => {
     if (isNameEditable) {
       nameInputRef.current?.focus();
-      nameInputRef.current?.select();
     }
   }, [isNameEditable]);
 
@@ -233,6 +232,7 @@ export default function ProfilePanel() {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   readOnly={!isNameEditable}
+                  tabIndex={isNameEditable ? 0 : -1}
                   className={`flex-1 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 ${!isNameEditable ? 'cursor-default pr-10 focus-visible:ring-0 focus-visible:ring-offset-0' : ''}`}
                 />
                 <Button
