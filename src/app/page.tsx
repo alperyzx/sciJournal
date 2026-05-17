@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import {useEffect, useState, useRef, useSyncExternalStore} from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import axios from 'axios';
@@ -10,8 +11,8 @@ import {Badge} from '@/components/ui/badge';
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from '@/components/ui/dialog';
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/components/ui/accordion';
 import {Search, Calendar, ExternalLink, LogOut, Moon, Settings, Sun} from 'lucide-react';
-import FloatingTriangles from '@/components/FloatingTriangles';
-import HeaderParticles from '@/components/HeaderParticles';
+const FloatingTriangles = dynamic(() => import('@/components/FloatingTriangles'), { ssr: false });
+const HeaderParticles = dynamic(() => import('@/components/HeaderParticles'), { ssr: false });
 
 interface Article {
   title: string;
@@ -39,6 +40,72 @@ interface JournalsAndArticlesResponse {
 
 const ARTICLES_PER_PAGE = 6;
 
+const LoadingSection = ({ title, subtitle }: { title: string; subtitle: string }) => {
+  const dots = Array.from({ length: 12 });
+
+  return (
+    <section className="mb-6 rounded-2xl border border-white/10 bg-white/80 p-4 shadow-xl backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-900/80 sm:p-5 overflow-hidden relative">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-10 top-6 h-28 w-28 rounded-full bg-blue-500/15 blur-3xl animate-pulse" />
+        <div className="absolute right-2 top-10 h-32 w-32 rounded-full bg-teal-400/15 blur-3xl animate-pulse [animation-delay:900ms]" />
+        <div className="absolute bottom-0 left-1/4 h-24 w-24 rounded-full bg-cyan-400/10 blur-3xl animate-pulse [animation-delay:1400ms]" />
+      </div>
+
+      <div className="relative mb-4 sm:mb-6 text-center">
+        <div className="inline-flex flex-col items-center">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-700 via-cyan-400 to-teal-400 dark:from-blue-400 dark:via-cyan-300 dark:to-teal-200 bg-clip-text text-transparent tracking-wide md:tracking-widest">
+            {title}
+          </h2>
+          <div className="mt-2 flex items-center gap-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+            <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+            <span>{subtitle}</span>
+            <span className="h-2 w-2 rounded-full bg-teal-400 animate-pulse [animation-delay:700ms]" />
+          </div>
+          <div className="mt-3 h-1 w-36 sm:w-48 rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
+        {dots.slice(0, 3).map((_, index) => (
+          <div
+            key={index}
+            className="rounded-xl border border-gray-200/60 dark:border-gray-700/60 bg-white/70 dark:bg-gray-800/70 shadow-lg overflow-hidden"
+          >
+            <div className="p-4 pb-3 space-y-3 animate-pulse">
+              <div className="flex items-center justify-between gap-3">
+                <div className="h-5 w-28 rounded-full bg-gradient-to-r from-blue-100 via-cyan-100 to-teal-100 dark:from-blue-900/70 dark:via-cyan-900/70 dark:to-teal-900/70" />
+                <div className="h-4 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-4 w-5/6 rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-4 w-4/6 rounded bg-gray-200 dark:bg-gray-700" />
+              </div>
+            </div>
+            <div className="px-4 pb-4">
+              <div className="h-16 rounded-lg border border-dashed border-blue-200/70 dark:border-blue-800/70 bg-gradient-to-br from-blue-50/80 via-cyan-50/60 to-teal-50/80 dark:from-gray-900/40 dark:via-gray-800/40 dark:to-gray-900/40" />
+            </div>
+            <div className="px-4 pb-4 flex items-center justify-between">
+              <div className="h-4 w-16 rounded-full bg-blue-100 dark:bg-blue-900/60" />
+              <div className="h-7 w-20 rounded-md bg-gray-200 dark:bg-gray-700" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="relative z-10 mt-4 flex justify-center gap-1.5">
+        {Array.from({ length: 14 }).map((_, index) => (
+          <span
+            key={index}
+            className="h-1.5 w-1.5 rounded-full bg-cyan-400/70 animate-pulse"
+            style={{ animationDelay: `${index * 90}ms` }}
+          />
+        ))}
+      </div>
+    </section>
+  );
+};
+
 function subscribeToSystemTheme(onStoreChange: () => void) {
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   const handler = () => onStoreChange();
@@ -65,6 +132,9 @@ function getSystemThemeSnapshot() {
 const Home: React.FC = () => {
   const { data: session } = useSession();
   const [highlighted, setHighlighted] = useState<HighlightedArticle[]>([]);
+  const [highlightedLoading, setHighlightedLoading] = useState(true);
+  // UI-visible placeholder for highlighted section — only show after a short delay
+  const [showHighlightedPlaceholder, setShowHighlightedPlaceholder] = useState(false);
   const [upvoteLoading, setUpvoteLoading] = useState(false);
   const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>('system');
   const [journalsList, setJournalsList] = useState<string[]>([]);
@@ -90,6 +160,21 @@ const Home: React.FC = () => {
   const isDarkMode = themePreference === 'system' ? systemPrefersDark : themePreference === 'dark';
 
   useEffect(() => {
+    // Delay showing the highlighted LoadingSection to avoid flicker for fast responses
+    let timer: number | undefined;
+    if (highlightedLoading) {
+      timer = window.setTimeout(() => setShowHighlightedPlaceholder(true), 2000);
+    } else {
+      setShowHighlightedPlaceholder(false);
+    }
+    return () => { if (timer) window.clearTimeout(timer); };
+  }, [highlightedLoading]);
+
+  useEffect(() => {
+    // (moved) Delay showing journals placeholders is applied after `globalLoading` is declared
+  }, [/* placeholder to satisfy eslint if needed */]);
+
+  useEffect(() => {
     const html = document.documentElement;
     html.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
@@ -102,6 +187,19 @@ const Home: React.FC = () => {
   // Global loading state for all journals
   const [globalLoading, setGlobalLoading] = useState(true);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  // UI-visible placeholder for journals area — show only after a short delay
+  const [showJournalsPlaceholder, setShowJournalsPlaceholder] = useState(false);
+
+  useEffect(() => {
+    // Delay showing journals placeholders (top-level and per-journal) to avoid flicker
+    let t: number | undefined;
+    if (globalLoading) {
+      t = window.setTimeout(() => setShowJournalsPlaceholder(true), 3000);
+    } else {
+      setShowJournalsPlaceholder(false);
+    }
+    return () => { if (t) window.clearTimeout(t); };
+  }, [globalLoading]);
 
   // Fetch all articles for all journals on mount
   useEffect(() => {
@@ -135,11 +233,14 @@ const Home: React.FC = () => {
     fetchAll();
     // fetch highlighted separately
     const fetchHighlighted = async () => {
+      setHighlightedLoading(true);
       try {
         const res = await axios.get('/api/articles/highlighted');
         setHighlighted((res.data || []) as HighlightedArticle[]);
       } catch (e) {
         // ignore
+      } finally {
+        setHighlightedLoading(false);
       }
     };
     fetchHighlighted();
@@ -411,6 +512,9 @@ const Home: React.FC = () => {
         )}
 
         {/* Highlighted articles */}
+        {showHighlightedPlaceholder && !searchQuery.trim() && (
+          <LoadingSection title="SciJournal Digest" subtitle="Gathering highlighted articles" />
+        )}
         {highlighted.length > 0 && !searchQuery.trim() && (
           <section className="mb-6 rounded-2xl border border-white/10 bg-white/80 p-4 shadow-xl backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-900/80 sm:p-5">
             <div className="mb-4 sm:mb-6">
@@ -556,6 +660,13 @@ const Home: React.FC = () => {
         ) : (
           /* Journals Grid - Normal View */
           <>
+            {showJournalsPlaceholder && visibleJournals.length === 0 && !searchQuery.trim() && (
+              <LoadingSection
+                title="SciJournal Digest"
+                subtitle="Gathering journal sections"
+              />
+            )}
+
             {/* Mobile View: Collapsible Accordion */}
             <div className="block sm:hidden">
               <Accordion type="multiple" className="space-y-4">
@@ -599,11 +710,11 @@ const Home: React.FC = () => {
                         <div className="px-4 pb-6">
                           <div className="h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400 rounded-full mb-6"></div>
                           
-                          {globalLoading ? (
-                            <div className="text-center p-8">
-                              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-                              <p className="mt-4 text-base text-gray-600 dark:text-gray-400">Loading articles...</p>
-                            </div>
+                          {showJournalsPlaceholder ? (
+                            <LoadingSection
+                              title={journalName}
+                              subtitle="Gathering journal articles"
+                            />
                           ) : displayArticles.length === 0 ? (
                             <div className="text-center p-8">
                               <div className="text-4xl mb-4">📚</div>
@@ -679,11 +790,11 @@ const Home: React.FC = () => {
                       <div className="h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400 rounded-full"></div>
                     </div>
 
-                    {globalLoading ? (
-                      <div className="text-center p-8 sm:p-12">
-                        <div className="inline-block h-8 w-8 sm:h-12 sm:w-12 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-                        <p className="mt-4 sm:mt-6 text-base sm:text-lg text-gray-600 dark:text-gray-400">Loading articles...</p>
-                      </div>
+                    {showJournalsPlaceholder ? (
+                      <LoadingSection
+                        title={journalName}
+                        subtitle="Gathering journal articles"
+                      />
                     ) : displayArticles.length === 0 ? (
                       <div className="text-center p-8 sm:p-12">
                         <div className="text-4xl sm:text-6xl mb-4">📚</div>
