@@ -178,36 +178,23 @@ const Home: React.FC = () => {
     return () => { if (timer) window.clearTimeout(timer); };
   }, [highlightedLoading]);
 
-  // After sign-in redirect, open profile dialog if the login flow requested it.
-  const [pendingOpenProfileRequest, setPendingOpenProfileRequest] = useState(false);
-
+  // Open the profile dialog only once per user record.
   useEffect(() => {
+    if (!session?.user?.showProfileToast) return;
+
+    const userKey = session.user.id || session.user.email;
+    if (!userKey) return;
+
+    const storageKey = `profileToastSeen:${userKey}`;
     try {
-      const v = localStorage.getItem('openProfileAfterSignIn');
-      if (v === 'true') {
-        // mark request and let session-driven effect decide whether to open
-        setPendingOpenProfileRequest(true);
+      if (localStorage.getItem(storageKey) === 'true') {
+        return;
       }
+      localStorage.setItem(storageKey, 'true');
     } catch (e) {}
-  }, []);
 
-  // When session is available after redirect, open profile dialog only for users
-  // who haven't completed onboarding (new signups). Clear the stored flag.
-  useEffect(() => {
-    if (!pendingOpenProfileRequest) return;
-    try { localStorage.removeItem('openProfileAfterSignIn'); } catch (e) {}
-
-    if (!session?.user) {
-      // wait until session becomes available
-      return;
-    }
-
-    const onboardingComplete = !!(session.user as any).onboardingComplete;
-    if (!onboardingComplete) {
-      setShowProfileDialog(true);
-    }
-    setPendingOpenProfileRequest(false);
-  }, [pendingOpenProfileRequest, session]);
+    setShowProfileDialog(true);
+  }, [session?.user?.showProfileToast, session?.user?.id, session?.user?.email]);
 
   useEffect(() => {
     // (moved) Delay showing journals placeholders is applied after `globalLoading` is declared
@@ -475,7 +462,12 @@ const Home: React.FC = () => {
                     {userInitial}
                   </Button>
 
-                  <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
+                  <Dialog
+                    open={showProfileDialog}
+                    onOpenChange={(open) => {
+                      setShowProfileDialog(open);
+                    }}
+                  >
                     <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto">
                         <DialogTitle className="sr-only">Profile</DialogTitle>
                         <ProfilePanel />

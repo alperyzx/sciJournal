@@ -27,6 +27,11 @@ export interface AuthUserDocument {
   updatedAt: Date;
 }
 
+export interface UpsertAuthUserResult {
+  user: AuthUserDocument;
+  created: boolean;
+}
+
 export type JournalInput = Omit<JournalDocument, '_id' | 'createdAt' | 'updatedAt'>;
 
 export interface RssArticle {
@@ -94,7 +99,7 @@ export async function upsertAuthUser(input: {
   image?: string | null;
   provider?: string | null;
   role?: UserRole;
-}): Promise<AuthUserDocument> {
+}): Promise<UpsertAuthUserResult> {
   const db = await getDb();
   const users = db.collection<AuthUserDocument>('users');
   const now = new Date();
@@ -130,7 +135,7 @@ export async function upsertAuthUser(input: {
       }
     );
 
-    return updated;
+    return { user: updated, created: false };
   }
 
   const created: AuthUserDocument = {
@@ -145,7 +150,7 @@ export async function upsertAuthUser(input: {
   };
 
   await users.insertOne(created);
-  return created;
+  return { user: created, created: true };
 }
 
 export async function getAuthUser(email: string): Promise<AuthUserDocument | null> {

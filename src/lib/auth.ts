@@ -33,13 +33,15 @@ export const authOptions: NextAuthOptions = {
       }
 
       const adminEmail = process.env.ADMIN?.toLowerCase();
-      await upsertAuthUser({
+      const result = await upsertAuthUser({
         email: user.email,
         name: user.name,
         image: user.image,
         provider: account?.provider ?? null,
         role: user.email.toLowerCase() === adminEmail ? 'admin' : 'user',
       });
+
+      (user as any).profileToast = result.created;
 
       return true;
     },
@@ -50,6 +52,7 @@ export const authOptions: NextAuthOptions = {
         token.picture = user.image;
         token.provider = account?.provider;
         token.role = user.email?.toLowerCase() === process.env.ADMIN?.toLowerCase() ? 'admin' : 'user';
+        token.showProfileToast = !!(user as any).profileToast;
       }
 
       if (token.email) {
@@ -72,11 +75,11 @@ export const authOptions: NextAuthOptions = {
         session.user.image = token.picture as string;
         session.user.role = (token.role as 'admin' | 'user') || 'user';
         session.user.provider = token.provider as string | undefined;
+        session.user.showProfileToast = !!token.showProfileToast;
         try {
           const full = await getAuthUser(token.email as string);
           if (full) {
             session.user.name = full.name;
-            session.user.onboardingComplete = !!full.onboardingComplete;
             session.user.selectedJournals = full.selectedJournals ?? [];
           } else {
             session.user.name = token.name as string;

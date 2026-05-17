@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { Check, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,6 @@ interface UpvotedArticle {
 
 export default function ProfilePanel() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [name, setName] = useState('');
   const [journals, setJournals] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -49,8 +47,6 @@ export default function ProfilePanel() {
       if (prefs) setSelected(prefs);
     }
   }, [session, status]);
-
-  const isOnboarding = !!(session?.user && !(session.user as any).onboardingComplete);
 
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -235,17 +231,16 @@ export default function ProfilePanel() {
   return (
     <>
       <div className="w-full max-w-3xl bg-white/95 dark:bg-gray-900/95 p-8 rounded-2xl shadow-lg border border-gray-200/70 dark:border-gray-700/70 backdrop-blur-sm">
-        {isOnboarding ? (
-          <>
-            <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-300">Welcome — set your profile</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Select and order journals you want to see on your home screen.</p>
-          </>
-        ) : (
-          <>
-            <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-300">Profile & Preferences</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Update your display name and choose the journals you want on your home screen.</p>
-          </>
-        )}
+        <div className="mb-6 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-cyan-50 p-5 shadow-sm dark:border-blue-900/40 dark:from-blue-950/30 dark:via-gray-900 dark:to-cyan-950/20">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">SciJournal Digest</h1>
+              <p className="mt-2 max-w-2xl text-sm text-gray-600 dark:text-gray-300">
+                Personalize your scientific discovery
+              </p>
+            </div>
+          </div>
+        </div>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Display name</label>
@@ -326,18 +321,16 @@ export default function ProfilePanel() {
 
           <div className="flex justify-end gap-2">
             <Button onClick={save} disabled={loading} className="rounded-full px-6 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:from-blue-700 hover:to-teal-600">
-              {isOnboarding ? 'Save and continue' : 'Save'}
+              Save profile
             </Button>
           </div>
 
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Dialog open={showUpvotes} onOpenChange={setShowUpvotes}>
-              <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto">
-                  <DialogTitle className="sr-only">Upvoted articles</DialogTitle>
-                  <UpvotedPanel onClose={() => setShowUpvotes(false)} />
-                </DialogContent>
-            </Dialog>
-          </div>
+          <Dialog open={showUpvotes} onOpenChange={setShowUpvotes}>
+            <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto">
+                <DialogTitle className="sr-only">Upvoted articles</DialogTitle>
+                <UpvotedPanel onClose={() => setShowUpvotes(false)} />
+              </DialogContent>
+          </Dialog>
 
           <div className="pt-6 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h2 className="sr-only">Delete account</h2>

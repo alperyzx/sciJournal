@@ -6,7 +6,7 @@ declare module 'next-auth' {
       id?: string;
       role?: 'admin' | 'user';
       provider?: string;
-      onboardingComplete?: boolean;
+      showProfileToast?: boolean;
       selectedJournals?: string[];
     };
   }
@@ -20,5 +20,6 @@ declare module 'next-auth/jwt' {
   interface JWT {
     role?: 'admin' | 'user';
     provider?: string;
+    showProfileToast?: boolean;
   }
 }

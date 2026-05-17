@@ -21,7 +21,6 @@ export default function LoginPanel() {
         <CardContent className="space-y-3 p-6 pt-0">
           <Button
             onClick={() => {
-              try { localStorage.setItem('openProfileAfterSignIn', 'true'); } catch (e) {}
               signIn('google', { callbackUrl: '/' });
             }}
             className="w-full flex items-center justify-center gap-2 h-10"
@@ -36,7 +35,6 @@ export default function LoginPanel() {
           </Button>
           <Button
             onClick={() => {
-              try { localStorage.setItem('openProfileAfterSignIn', 'true'); } catch (e) {}
               signIn('github', { callbackUrl: '/' });
             }}
             variant="outline"
