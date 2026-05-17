@@ -267,7 +267,7 @@ export default function ProfilePage() {
                     type="checkbox"
                     checked={selected.includes(j)}
                     onChange={() => toggle(j)}
-                    className="h-4 w-4 rounded border-gray-300 accent-blue-600 focus:ring-blue-500 dark:[color-scheme:dark] dark:border-gray-700 dark:bg-gray-800 dark:accent-slate-700"
+                    className="h-4 w-4 rounded border-gray-300 accent-blue-600 focus:ring-blue-500 dark:[color-scheme:dark] dark:border-gray-700 dark:bg-gray-800 dark:accent-cyan-500"
                   />
                   <span className="text-sm leading-snug flex-1">{j}</span>
                 </label>
