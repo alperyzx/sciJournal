@@ -2,6 +2,7 @@
     "IDX.aI.enableInlineCompletion": true,
     "IDX.aI.enableCodebaseIndexing": true,
     "chat.tools.terminal.autoApprove": {
-        "npm install": true
+        "npm install": true,
+        "true": true
     }
 }
