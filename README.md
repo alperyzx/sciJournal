@@ -9,10 +9,10 @@ Live at https://scijournal.alperyz.com/
 ## Features
 
 - **Self-serve sign up** with Google or GitHub.
-- **Personalized profile setup** to set a display name and choose an ordered journal list.
+- **Personalized profile setup** to set a profile name and choose an ordered journal list.
 - **Home screen curation** so admins can control which journals are visible on the public feed.
 - **Upvotes and highlights** with per-user vote tracking and a highlighted article section.
-- **Profile management** for updating display name, editing journal preferences, and viewing upvoted articles.
+- **Profile management** for updating profile name, editing journal preferences, and viewing upvoted articles.
 - **Secure account deletion** with a short-lived confirmation captcha.
 - **Responsive UI** with a modern header, mobile-friendly layout, and theme toggle.
 - **System-based dark mode** by default, with manual override available in the session.
@@ -31,7 +31,7 @@ Live at https://scijournal.alperyz.com/
 
 ## Data Model
 
-- **Users** store auth identity, display name, profile/onboarding state, and selected journals.
+- **Users** store auth identity, profile name, profile/onboarding state, and selected journals.
 - **Journals** store feed metadata, display order, and home visibility.
 - **Articles** are deduplicated by journal, title, and publication date.
 - **Votes** are stored relationally against `users._id` and `articles._id`.
@@ -72,7 +72,7 @@ ADMIN=
 ## Usage
 
 - Sign in from the home page.
-- Complete your profile to set your display name and choose journals.
+- Complete your profile to set your profile name and choose journals.
 - Use the profile page to reorder journals, review upvoted articles, or delete your account.
 - Use the admin page to manage journals and control what appears on the public home screen.
 

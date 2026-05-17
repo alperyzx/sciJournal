@@ -12,14 +12,14 @@ SciJournal Digest is a personalized scientific journal reader. Users can sign in
 - **Personalized Home**: Shows selected journals only, based on user preferences and admin visibility settings.
 - **Highlighted Articles**: Aggregates upvoted articles across users.
 - **Voting**: Stores votes relationally against `users._id` and `articles._id`.
-- **Profile Management**: Edit display name, reorder journals, inspect upvoted articles, and unvote.
+- **Profile Management**: Edit profile name, reorder journals, inspect upvoted articles, and unvote.
 - **Account Deletion**: Protected by a short-lived captcha confirmation flow.
 - **Admin Console**: Create, edit, delete, reorder, and hide/show journals from the home screen.
 - **RSS Aggregation**: Fetches and parses RSS feeds server-side, caches results, and deduplicates articles.
 
 ## Data Model
 
-- **users**: auth identity, role, onboarding state, display name, selected journals.
+- **users**: auth identity, role, onboarding state, profile name, selected journals.
 - **journals**: feed URL, type, order, and `homeVisible` flag.
 - **articles**: journal name, title, link, description, publication date, vote count.
 - **votes**: `userId`, `articleId`, created timestamp, optional legacy email fallback.
