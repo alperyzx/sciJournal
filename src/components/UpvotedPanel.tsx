@@ -13,26 +13,53 @@ interface UpvotedArticle {
   publicationDate: string;
 }
 
+let upvotedArticlesLoadPromise: Promise<UpvotedArticle[]> | null = null;
+
+const loadUpvotedArticlesOnce = async () => {
+  if (!upvotedArticlesLoadPromise) {
+    upvotedArticlesLoadPromise = fetch('/api/user/upvoted-articles')
+      .then(async (res) => {
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      })
+      .catch(() => [])
+      .finally(() => {
+        upvotedArticlesLoadPromise = null;
+      });
+  }
+
+  return upvotedArticlesLoadPromise;
+};
+
 export default function UpvotedPanel({ onClose }: { onClose?: () => void }) {
   const [upvotedArticles, setUpvotedArticles] = useState<UpvotedArticle[]>([]);
   const [loading, setLoading] = useState(false);
   const [pendingUnvote, setPendingUnvote] = useState<UpvotedArticle | null>(null);
   const [unvotingId, setUnvotingId] = useState<string | null>(null);
 
-  const refresh = async () => {
-    try {
-      const res = await fetch('/api/user/upvoted-articles');
-      if (!res.ok) return setUpvotedArticles([]);
-      const data = await res.json();
-      setUpvotedArticles(Array.isArray(data) ? data : []);
-    } catch (e) {
-      setUpvotedArticles([]);
-    }
-  };
-
   useEffect(() => {
-    setLoading(true);
-    void refresh().finally(() => setLoading(false));
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        const articles = await loadUpvotedArticlesOnce();
+        if (!cancelled) {
+          setUpvotedArticles(articles);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const confirmUnvote = async () => {
