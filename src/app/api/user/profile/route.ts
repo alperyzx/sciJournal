@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const user = session.user.id ? await getAuthUserById(session.user.id) : await getAuthUser(session.user.email);
   if (!user) return NextResponse.json({ message: 'Not found' }, { status: 404 });
 
-  return NextResponse.json({ email: user.email, name: user.name, selectedJournals: user.selectedJournals ?? [], onboardingComplete: !!user.onboardingComplete });
+  return NextResponse.json({ email: user.email, name: user.name, selectedJournals: user.selectedJournals ?? [] });
 }
 
 export async function PUT(request: NextRequest) {
@@ -29,8 +29,8 @@ export async function PUT(request: NextRequest) {
   }
 
   const updated = session.user.id
-    ? await updateAuthUserProfileById(session.user.id, { name, selectedJournals, onboardingComplete: true })
-    : await updateAuthUserProfile(session.user.email, { name, selectedJournals, onboardingComplete: true });
+    ? await updateAuthUserProfileById(session.user.id, { name, selectedJournals })
+    : await updateAuthUserProfile(session.user.email, { name, selectedJournals });
   if (!updated) return NextResponse.json({ message: 'Failed to update' }, { status: 500 });
 
   return NextResponse.json({ success: true });

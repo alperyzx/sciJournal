@@ -8,7 +8,11 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/compo
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
-import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from '@/components/ui/dialog';
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from '@/components/ui/dialog';
+import ProfilePanel from '@/components/ProfilePanel';
+import PrivacyPanel from '@/components/PrivacyPanel';
+import TermsPanel from '@/components/TermsPanel';
+import LoginPanel from '@/components/LoginPanel';
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/components/ui/accordion';
 import {Search, Calendar, ExternalLink, LogOut, Moon, Settings, Sun} from 'lucide-react';
 const FloatingTriangles = dynamic(() => import('@/components/FloatingTriangles'), { ssr: false });
@@ -148,6 +152,10 @@ const Home: React.FC = () => {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedJournal, setSelectedJournal] = useState<string | null>(null);
   const [modalVotes, setModalVotes] = useState<number | null>(null);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
+  const [showTermsDialog, setShowTermsDialog] = useState(false);
   const itemRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const headerHeight = 140; // px, optimized for mobile
   const userInitial = (session?.user?.name?.trim()?.[0] || session?.user?.email?.trim()?.[0] || 'R').toUpperCase();
@@ -169,6 +177,24 @@ const Home: React.FC = () => {
     }
     return () => { if (timer) window.clearTimeout(timer); };
   }, [highlightedLoading]);
+
+  // Open the profile dialog only once per user record.
+  useEffect(() => {
+    if (!session?.user?.showProfileToast) return;
+
+    const userKey = session.user.id || session.user.email;
+    if (!userKey) return;
+
+    const storageKey = `profileToastSeen:${userKey}`;
+    try {
+      if (localStorage.getItem(storageKey) === 'true') {
+        return;
+      }
+      localStorage.setItem(storageKey, 'true');
+    } catch (e) {}
+
+    setShowProfileDialog(true);
+  }, [session?.user?.showProfileToast, session?.user?.id, session?.user?.email]);
 
   useEffect(() => {
     // (moved) Delay showing journals placeholders is applied after `globalLoading` is declared
@@ -408,7 +434,7 @@ const Home: React.FC = () => {
               {!session?.user ? (
                 <div className="flex items-center justify-center">
                   <Button
-                    onClick={() => signIn(undefined, { callbackUrl: '/profile' })}
+                    onClick={() => setShowLoginDialog(true)}
                     size="icon"
                     className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all"
                     aria-label="Sign in"
@@ -416,14 +442,37 @@ const Home: React.FC = () => {
                   >
                     <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Button>
+
+                  <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+                    <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto p-4">
+                        <DialogTitle className="sr-only">Sign in</DialogTitle>
+                        <LoginPanel />
+                      </DialogContent>
+                  </Dialog>
                 </div>
               ) : (
                 <div className="flex items-center justify-center">
-                  <Button asChild size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all">
-                    <a href="/profile" title={userDisplayName} aria-label={`Open profile for ${userDisplayName}`} className="flex items-center justify-center text-[10px] sm:text-sm font-semibold">
-                      {userInitial}
-                    </a>
+                  <Button
+                    size="icon"
+                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-teal-600 transition-all"
+                    title={userDisplayName}
+                    aria-label={`Open profile for ${userDisplayName}`}
+                    onClick={() => setShowProfileDialog(true)}
+                  >
+                    {userInitial}
                   </Button>
+
+                  <Dialog
+                    open={showProfileDialog}
+                    onOpenChange={(open) => {
+                      setShowProfileDialog(open);
+                    }}
+                  >
+                    <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto">
+                        <DialogTitle className="sr-only">Profile</DialogTitle>
+                        <ProfilePanel />
+                    </DialogContent>
+                  </Dialog>
                 </div>
               )}
 
@@ -950,12 +999,28 @@ const Home: React.FC = () => {
               <div className="flex items-center gap-2 sm:gap-4">
               <span className="text-gray-500 dark:text-gray-400">© 2025</span>
               <a href="https://github.com/alperyzx/sciJournal" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
-              <a href="/privacy" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy</a>
-              <a href="/terms" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms</a>
+              <button type="button" onClick={() => setShowPrivacyDialog(true)} className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy</button>
+              <button type="button" onClick={() => setShowTermsDialog(true)} className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms</button>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Privacy Dialog */}
+      <Dialog open={showPrivacyDialog} onOpenChange={setShowPrivacyDialog}>
+        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto p-4">
+          <DialogTitle className="sr-only">Privacy</DialogTitle>
+          <PrivacyPanel />
+        </DialogContent>
+      </Dialog>
+
+      {/* Terms Dialog */}
+      <Dialog open={showTermsDialog} onOpenChange={setShowTermsDialog}>
+        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto p-4">
+          <DialogTitle className="sr-only">Terms</DialogTitle>
+          <TermsPanel />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
