@@ -23,7 +23,7 @@ export default function ProfilePage() {
       </header>
 
       <main className="flex-grow pt-24 px-4 pb-12 bg-gradient-to-br from-slate-50 via-white to-cyan-50 text-foreground dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
-        <div className="w-full max-w-3xl mx-auto">
+        <div className="w-full max-w-[95vw] sm:max-w-3xl mx-auto">
           <ProfilePanel />
         </div>
       </main>

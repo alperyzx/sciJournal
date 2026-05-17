@@ -423,7 +423,7 @@ const Home: React.FC = () => {
                 variant="outline"
                 size="icon"
                 onClick={toggleTheme}
-                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-border bg-background/90 text-foreground shadow-lg hover:bg-background"
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-border bg-background/90 text-foreground hover:text-background/90 hover:bg-foreground shadow-lg"
                 aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
                 title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               >
@@ -483,7 +483,7 @@ const Home: React.FC = () => {
                   variant="outline"
                   size="icon"
                   onClick={() => signOut({ callbackUrl: '/' })}
-                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-gray-200 bg-white/90 text-gray-700 shadow-none hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200 dark:hover:bg-gray-800"
+                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-gray-200 bg-white/90 text-gray-700 hover:text-background/90 hover:bg-foreground shadow-none dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200 dark:hover:text-background/90 dark:hover:bg-foreground"
                   aria-label="Sign out"
                   title="Sign out"
                 >

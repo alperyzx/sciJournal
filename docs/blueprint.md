@@ -7,7 +7,8 @@ SciJournal Digest is a personalized scientific journal reader. Users can sign in
 ## Current Core Features
 
 - **Authentication**: Google and GitHub sign-in through NextAuth.
-- **Onboarding**: Captures display name and the user’s preferred journal order.
+- **Profile as Panel/Toast**: Profile UI exists as a reusable `Panel` component that works both as a standalone page and as a Radix Dialog toast from the homepage.
+ - **Upvoted panel**: Upvoted articles were extracted into a separate `UpvotedPanel` that loads on-demand (no automatic fetch on profile mount).
 - **Personalized Home**: Shows selected journals only, based on user preferences and admin visibility settings.
 - **Highlighted Articles**: Aggregates upvoted articles across users.
 - **Voting**: Stores votes relationally against `users._id` and `articles._id`.
@@ -37,6 +38,10 @@ SciJournal Digest is a personalized scientific journal reader. Users can sign in
 - Highlighted and upvoted views are driven from vote records and user session state.
 - Admin journal actions live in `src/app/api/admin/journals`.
 - Authentication state is enriched in `src/lib/auth.ts` and exposed through `session.user.id`.
+ - Authentication / onboarding: `upsertAuthUser` now returns a `created` flag which is propagated through NextAuth callbacks to `session.user.showProfileToast`. This drives a one-time profile toast for newly created accounts (including re-created accounts).
+ - Toast consumption: the homepage records `profileToastSeen:<userKey>` in `localStorage` to ensure the profile toast is shown only once per user record and not reopened after a save/reload.
+ - API/client optimizations: duplicated fetches were removed. `UpvotedPanel` and profile journal fetching use module-level promise caching/deduping to avoid redundant network calls when components mount multiple times.
+ - UI: shared Radix Dialog wrapper (`src/components/ui/dialog.tsx`) centers content and removed the explicit close button to favor outside-click dismissal; Dialog sizes/paddings were tuned for compact mobile presentation.
 
 ## Styling Guidelines
 
