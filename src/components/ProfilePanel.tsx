@@ -207,7 +207,7 @@ export default function ProfilePanel() {
 
   const save = async () => {
     if (!name || name.trim().length === 0) {
-      setNameError('Display name is required');
+      setNameError('Profile name is required');
       setIsNameEditable(true);
       setTimeout(() => nameInputRef.current?.focus(), 0);
       return;
@@ -242,7 +242,7 @@ export default function ProfilePanel() {
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Display name</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Profile name</label>
             <div className="flex items-center gap-3">
               <div className="flex flex-1 items-center gap-2 sm:w-1/2">
                 <Input
@@ -261,8 +261,8 @@ export default function ProfilePanel() {
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9 shrink-0 rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm hover:bg-blue-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-200"
-                  aria-label="Edit display name"
-                  title="Edit display name"
+                  aria-label="Edit profile name"
+                  title="Edit profile name"
                   onClick={() => setIsNameEditable(true)}
                 >
                   <PencilLine className="h-4 w-4" />
