@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { signOut } from 'next-auth/react';
-import { Check, GripVertical } from 'lucide-react';
+import { GripVertical, PencilLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import UpvotedPanel from '@/components/UpvotedPanel';
@@ -40,6 +40,7 @@ const loadJournalsOnce = async () => {
 export default function ProfilePanel() {
   const { data: session, status } = useSession();
   const [name, setName] = useState('');
+  const [isNameEditable, setIsNameEditable] = useState(false);
   const [journals, setJournals] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [dragJournal, setDragJournal] = useState<string | null>(null);
@@ -51,16 +52,25 @@ export default function ProfilePanel() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaQuestion, setCaptchaQuestion] = useState<string | null>(null);
   const activePointerJournal = useRef<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [showUpvotes, setShowUpvotes] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') return;
     if (session?.user) {
       setName(session.user.name ?? '');
+      setIsNameEditable(false);
       const prefs = (session.user as any).selectedJournals as string[] | undefined;
       if (prefs) setSelected(prefs);
     }
   }, [session, status]);
+
+  useEffect(() => {
+    if (isNameEditable) {
+      nameInputRef.current?.focus();
+      nameInputRef.current?.select();
+    }
+  }, [isNameEditable]);
 
   useEffect(() => {
     let cancelled = false;
@@ -217,11 +227,26 @@ export default function ProfilePanel() {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Display name</label>
             <div className="flex items-center gap-3">
-              <Input
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="flex-1 sm:w-1/2 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-              />
+              <div className="flex flex-1 items-center gap-2 sm:w-1/2">
+                <Input
+                  ref={nameInputRef}
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  readOnly={!isNameEditable}
+                  className={`flex-1 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 ${!isNameEditable ? 'cursor-default pr-10 focus-visible:ring-0 focus-visible:ring-offset-0' : ''}`}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm hover:bg-blue-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-200"
+                  aria-label="Edit display name"
+                  title="Edit display name"
+                  onClick={() => setIsNameEditable(true)}
+                >
+                  <PencilLine className="h-4 w-4" />
+                </Button>
+              </div>
               <Button onClick={() => setShowUpvotes(true)} className="hidden sm:inline-flex rounded-full px-4">View upvotes</Button>
               <Button onClick={() => setShowUpvotes(true)} className="sm:hidden rounded-full px-3 py-2">Upvotes</Button>
             </div>
