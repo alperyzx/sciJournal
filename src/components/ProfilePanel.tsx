@@ -19,6 +19,24 @@ interface UpvotedArticle {
   upvotedAt?: string | null;
 }
 
+let journalsLoadPromise: Promise<string[]> | null = null;
+
+const loadJournalsOnce = async () => {
+  if (!journalsLoadPromise) {
+    journalsLoadPromise = fetch('/api/journals')
+      .then(async (res) => {
+        const data = await res.json();
+        return Array.isArray(data) ? data.map((j: any) => j.journalName) : [];
+      })
+      .catch(() => [])
+      .finally(() => {
+        journalsLoadPromise = null;
+      });
+  }
+
+  return journalsLoadPromise;
+};
+
 export default function ProfilePanel() {
   const { data: session, status } = useSession();
   const [name, setName] = useState('');
@@ -26,10 +44,6 @@ export default function ProfilePanel() {
   const [selected, setSelected] = useState<string[]>([]);
   const [dragJournal, setDragJournal] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [upvotedArticles, setUpvotedArticles] = useState<UpvotedArticle[]>([]);
-  const [upvotedLoading, setUpvotedLoading] = useState(false);
-  const [pendingUnvote, setPendingUnvote] = useState<UpvotedArticle | null>(null);
-  const [unvotingId, setUnvotingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [captcha, setCaptcha] = useState('');
@@ -49,17 +63,20 @@ export default function ProfilePanel() {
   }, [session, status]);
 
   useEffect(() => {
-    if (status !== 'authenticated') return;
-    void loadUpvotedArticles();
-  }, [status]);
+    let cancelled = false;
 
-  useEffect(() => {
     const load = async () => {
-      const res = await fetch('/api/journals');
-      const data = await res.json();
-      setJournals(data.map((j: any) => j.journalName));
+      const names = await loadJournalsOnce();
+      if (!cancelled) {
+        setJournals(names);
+      }
     };
-    load();
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const toggle = (name: string) => {
@@ -133,51 +150,6 @@ export default function ProfilePanel() {
   const finishPointerDrag = () => {
     activePointerJournal.current = null;
     setDragJournal(null);
-  };
-
-  const refreshUpvotedArticles = async () => {
-    const res = await fetch('/api/user/upvoted-articles');
-    if (!res.ok) {
-      setUpvotedArticles([]);
-      return;
-    }
-
-    const data = await res.json();
-    setUpvotedArticles(Array.isArray(data) ? data : []);
-  };
-
-  const loadUpvotedArticles = async () => {
-    setUpvotedLoading(true);
-    try {
-      await refreshUpvotedArticles();
-    } catch (error) {
-      setUpvotedArticles([]);
-    } finally {
-      setUpvotedLoading(false);
-    }
-  };
-
-  const confirmUnvote = async () => {
-    if (!pendingUnvote) return;
-
-    const removedId = pendingUnvote.id;
-    setUnvotingId(removedId);
-    try {
-      const response = await fetch('/api/articles/upvote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleId: pendingUnvote.id }),
-      });
-
-      if (!response.ok) throw new Error('Unvote failed');
-
-      setUpvotedArticles(prev => prev.filter(article => article.id !== removedId));
-    } catch (error) {
-      // keep the current list if the toggle fails
-    } finally {
-      setUnvotingId(null);
-      setPendingUnvote(null);
-    }
   };
 
   const onConfirmDelete = async () => {
@@ -363,25 +335,6 @@ export default function ProfilePanel() {
           </div>
         </div>
       </div>
-
-      <AlertDialog open={!!pendingUnvote} onOpenChange={(open) => {
-        if (!open) setPendingUnvote(null);
-      }}>
-        <AlertDialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900 dark:text-gray-300">Remove this article from your upvoted list?</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
-              This will unvote the article and remove it from your saved upvoted articles section.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmUnvote} className="bg-red-600 text-white hover:bg-red-700">
-              Remove vote
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog open={pendingDelete} onOpenChange={(open) => {
         if (!open) setPendingDelete(false);
