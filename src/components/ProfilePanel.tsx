@@ -202,11 +202,11 @@ export default function ProfilePanel() {
 
   return (
     <>
-      <div className="w-full max-w-3xl bg-white/95 dark:bg-gray-900/95 p-8 rounded-2xl shadow-lg border border-gray-200/70 dark:border-gray-700/70 backdrop-blur-sm">
+      <div className="w-full max-w-[95vw] sm:max-w-3xl bg-white/95 dark:bg-gray-900/95 p-4 sm:p-8 rounded-2xl shadow-lg border border-gray-200/70 dark:border-gray-700/70 backdrop-blur-sm">
         <div className="mb-6 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-cyan-50 p-5 shadow-sm dark:border-blue-900/40 dark:from-blue-950/30 dark:via-gray-900 dark:to-cyan-950/20">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h1 className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">SciJournal Digest</h1>
+              <h1 className="mt-1 text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">SciJournal Digest</h1>
               <p className="mt-2 max-w-2xl text-sm text-gray-600 dark:text-gray-300">
                 Personalize your scientific discovery
               </p>
@@ -232,7 +232,7 @@ export default function ProfilePanel() {
               {journals.map(j => (
                 <label
                   key={j}
-                  className={`flex items-center gap-3 p-3 border rounded-xl transition-all cursor-pointer ${selected.includes(j)
+                  className={`flex items-center gap-3 p-2 sm:p-3 border rounded-xl transition-all cursor-pointer ${selected.includes(j)
                     ? 'border-blue-500 bg-blue-50 text-blue-950 shadow-sm dark:border-cyan-400 dark:bg-slate-900 dark:text-slate-100'
                     : 'bg-white/80 dark:bg-gray-950/70 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:border-blue-400 dark:hover:border-cyan-500'
                   }`}
@@ -261,7 +261,7 @@ export default function ProfilePanel() {
                     <li
                       key={name}
                       data-journal-item={name}
-                      className={`relative flex items-center justify-between gap-3 rounded border px-3 py-2 ${isDragging ? 'border-blue-500 bg-blue-50/80 shadow-sm dark:border-cyan-400 dark:bg-cyan-950/25' : 'border-gray-200 bg-white/70 dark:border-gray-700 dark:bg-gray-950/60'}`}
+                      className={`relative flex items-center justify-between gap-3 rounded border px-2 py-1 sm:px-3 sm:py-2 ${isDragging ? 'border-blue-500 bg-blue-50/80 shadow-sm dark:border-cyan-400 dark:bg-cyan-950/25' : 'border-gray-200 bg-white/70 dark:border-gray-700 dark:bg-gray-950/60'}`}
                       draggable
                       onDragStart={(e) => onDragStart(e, name)}
                       onDragOver={onDragOver}
@@ -292,7 +292,7 @@ export default function ProfilePanel() {
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button onClick={save} disabled={loading} className="rounded-full px-6 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:from-blue-700 hover:to-teal-600">
+            <Button onClick={save} disabled={loading} className="rounded-full px-4 sm:px-6 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:from-blue-700 hover:to-teal-600">
               Save profile
             </Button>
           </div>
