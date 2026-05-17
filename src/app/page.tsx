@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import {useEffect, useState, useRef, useSyncExternalStore} from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import axios from 'axios';
@@ -10,8 +11,8 @@ import {Badge} from '@/components/ui/badge';
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from '@/components/ui/dialog';
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/components/ui/accordion';
 import {Search, Calendar, ExternalLink, LogOut, Moon, Settings, Sun} from 'lucide-react';
-import FloatingTriangles from '@/components/FloatingTriangles';
-import HeaderParticles from '@/components/HeaderParticles';
+const FloatingTriangles = dynamic(() => import('@/components/FloatingTriangles'), { ssr: false });
+const HeaderParticles = dynamic(() => import('@/components/HeaderParticles'), { ssr: false });
 
 interface Article {
   title: string;

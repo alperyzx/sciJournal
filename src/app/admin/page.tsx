@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Trash2, Edit, Plus, Eye, EyeOff, RefreshCw, LogOut, ChevronUp, ChevronDown, ArrowLeft } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Trash2, Edit, Plus, Eye, EyeOff, RefreshCw, LogOut, ChevronUp, ChevronDown, ArrowLeft, Search } from 'lucide-react';
+import JournalCardCompact from '@/components/admin/JournalCardCompact';
 
 interface Journal {
   id?: string;
@@ -20,99 +22,92 @@ interface Journal {
   order?: number;
   homeVisible?: boolean;
 }
-
 const AdminConsole: React.FC = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const isAdmin = session?.user?.role === 'admin';
+  const { toast } = useToast();
+
   const [journals, setJournals] = useState<Journal[]>([]);
-  const [editingJournal, setEditingJournal] = useState<Journal | null>(null);
-  const [newJournal, setNewJournal] = useState<Journal>({
-    journalName: '',
-    url: '',
-    type: 'standard'
-  });
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [message, setMessage] = useState<{ type: 'error' | 'success' | 'info'; text: string } | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [newJournal, setNewJournal] = useState<Journal>({ journalName: '', url: '', type: 'standard' });
+  const [editingJournal, setEditingJournal] = useState<Journal | null>(null);
+  const [journalToDelete, setJournalToDelete] = useState<Journal | null>(null);
 
-  useEffect(() => {
-    if (status === 'authenticated' && !isAdmin) {
-      router.replace('/');
-      return;
-    }
+  const isAdmin = (session as any)?.user?.role === 'admin' || (session as any)?.user?.isAdmin === true;
 
-    if (isAdmin) {
-      loadJournals();
-    }
-  }, [isAdmin, router, status]);
-
-  const loadJournals = async () => {
+  const loadJournals = async (opts?: { showLoading?: boolean }) => {
+    if (opts?.showLoading) setLoading(true);
+    setRefreshing(true);
     try {
-      const response = await fetch('/api/admin/journals');
-      if (response.ok) {
-        const data = await response.json();
-        setJournals(data);
+      const res = await fetch('/api/admin/journals');
+      if (res.ok) {
+        const data = await res.json();
+        setJournals(data.journals ?? data);
+      } else {
+        setMessage({ type: 'error', text: 'Failed to load journals' });
       }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to load journals' });
+    } catch (e) {
+      setMessage({ type: 'error', text: 'Network error while loading journals' });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const saveJournal = async (journal: Journal, isEdit: boolean = false) => {
+  const saveJournal = async (journal: Journal, isEdit = false) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/journals', {
-        method: isEdit ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const res = await fetch('/api/admin/journals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(journal),
       });
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: `Journal ${isEdit ? 'updated' : 'added'} successfully` });
-        loadJournals();
-        setNewJournal({ journalName: '', url: '', type: 'standard' });
-        setEditingJournal(null);
+      const result = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast({ title: 'Journal saved successfully' });
         setIsAddDialogOpen(false);
         setIsEditDialogOpen(false);
+        setNewJournal({ journalName: '', url: '', type: 'standard' });
+        await loadJournals();
       } else {
-        const error = await response.json();
-        setMessage({ type: 'error', text: error.message || 'Failed to save journal' });
+        toast({ title: (result as any)?.message || 'Failed to save journal', variant: 'destructive' } as any);
       }
-    } catch (error) {
+    } catch (e) {
       setMessage({ type: 'error', text: 'Network error while saving journal' });
     }
     setLoading(false);
   };
 
   const deleteJournal = async (journal: Journal) => {
-    if (!confirm(`Are you sure you want to delete "${journal.journalName}"?`)) return;
-
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/journals', {
+      const res = await fetch('/api/admin/journals', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ journalName: journal.journalName }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ journal }),
       });
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Journal deleted successfully' });
-        loadJournals();
+      const result = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast({ title: (result as any)?.message || 'Journal deleted' });
+        await loadJournals();
       } else {
-        const error = await response.json();
-        setMessage({ type: 'error', text: error.message || 'Failed to delete journal' });
+        setMessage({ type: 'error', text: (result as any)?.message || 'Failed to delete journal' });
       }
-    } catch (error) {
+    } catch (e) {
       setMessage({ type: 'error', text: 'Network error while deleting journal' });
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadJournals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setJournalOrder = async (journal: Journal, order: number) => {
     // send full journal payload (PUT requires journalName and url)
@@ -150,6 +145,7 @@ const AdminConsole: React.FC = () => {
 
   const testJournalFeed = async (url: string) => {
     setLoading(true);
+    setMessage(null);
     try {
       const response = await fetch('/api/admin/test-feed', {
         method: 'POST',
@@ -159,14 +155,27 @@ const AdminConsole: React.FC = () => {
         body: JSON.stringify({ url }),
       });
 
-      const result = await response.json();
-      if (response.ok) {
-        setMessage({ type: 'success', text: `Feed test successful! Found ${result.articleCount} articles` });
+      const raw = await response.text();
+      let result: { success?: boolean; message?: string; articleCount?: number } = {};
+
+      try {
+        result = raw ? JSON.parse(raw) : {};
+      } catch {
+        result = { message: raw || 'Unexpected response from feed test' };
+      }
+
+      if (response.ok && result.success !== false) {
+        setMessage(null);
+        const t = toast({ title: `Feed test successful! Found ${result.articleCount ?? 0} articles` });
+        setTimeout(() => t.dismiss(), 4000);
       } else {
-        setMessage({ type: 'error', text: result.message || 'Feed test failed' });
+        const message = result.message || `Feed test failed (${response.status})`;
+        setMessage({ type: 'error', text: message });
+        const t = toast({ title: message, variant: 'destructive' } as any);
+        setTimeout(() => t.dismiss(), 5000);
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Network error while testing feed' });
+      setMessage({ type: 'error', text: 'Unable to reach feed test endpoint' });
     }
     setLoading(false);
   };
@@ -247,27 +256,39 @@ const AdminConsole: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 dark:from-gray-900 dark:to-gray-800 px-3 py-4 sm:p-4">
       <div className="container mx-auto max-w-6xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-blue-700 dark:text-blue-300">
-              SciJournal Admin Console
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Manage journal RSS feeds and configurations
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button onClick={() => router.push('/')} variant="outline" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Button>
-            <Button onClick={() => signOut()} variant="outline" className="flex items-center gap-2">
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
+        <div className="mb-5 sm:mb-8">
+          <div className="flex items-start justify-between gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 space-y-1">
+              <h1 className="text-2xl font-bold tracking-tight text-blue-700 dark:text-blue-300 sm:text-3xl">
+                SciJournal Admin Console
+              </h1>
+              <p className="max-w-xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
+                Manage journal RSS feeds and configurations
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <Button
+                onClick={() => router.push('/')}
+                variant="outline"
+                aria-label="Back to Home"
+                className="flex h-10 w-10 items-center justify-center px-0 sm:w-auto sm:px-4"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="sr-only sm:not-sr-only sm:truncate">Back to Home</span>
+              </Button>
+              <Button
+                onClick={() => signOut()}
+                variant="outline"
+                aria-label="Sign Out"
+                className="flex h-10 w-10 items-center justify-center px-0 sm:w-auto sm:px-4"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="sr-only sm:not-sr-only sm:truncate">Sign Out</span>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -279,10 +300,10 @@ const AdminConsole: React.FC = () => {
         )}
 
         {/* Actions Bar */}
-        <div className="flex flex-wrap gap-4 mb-6">
+        <div className="mb-5 flex flex-row gap-2 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
+              <Button className="flex flex-1 items-center justify-center gap-2 sm:flex-none sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Add Journal
               </Button>
@@ -300,15 +321,59 @@ const AdminConsole: React.FC = () => {
               />
             </DialogContent>
           </Dialog>
+          {/* Delete confirmation dialog */}
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Confirm Delete</DialogTitle>
+              </DialogHeader>
+              <div className="py-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  Are you sure you want to delete "{journalToDelete?.journalName}"? This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={loading}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!journalToDelete) return;
+                    await deleteJournal(journalToDelete);
+                    setIsDeleteDialogOpen(false);
+                    // If we were editing the same journal, close the edit dialog
+                    if (editingJournal?.journalName === journalToDelete.journalName) {
+                      setIsEditDialogOpen(false);
+                    }
+                    setJournalToDelete(null);
+                  }}
+                  disabled={loading}
+                >
+                  Delete
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
-          <Button onClick={loadJournals} variant="outline" className="flex items-center gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
+          <Button
+            onClick={() => loadJournals({ showLoading: true })}
+            variant="outline"
+            className="flex flex-1 items-center justify-center gap-2 sm:flex-none sm:w-auto"
+            disabled={refreshing || loading}
+            aria-busy={refreshing}
+          >
+            {refreshing ? (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden="true"></span>
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
 
-        {/* Journals List */}
-        <div className="grid gap-4">
+        {/* Desktop Journals List */}
+        <div className="hidden gap-4 sm:grid">
           {journals.map((journal, index) => (
             <Card key={index} className="hover:shadow-lg transition-shadow" data-testid="journal-card">
               <CardContent className="p-6">
@@ -371,7 +436,7 @@ const AdminConsole: React.FC = () => {
                       disabled={loading}
                       className="flex items-center gap-1"
                     >
-                      <Eye className="h-3 w-3" />
+                      <Search className="h-3 w-3" />
                       Test
                     </Button>
                     <Button
@@ -386,20 +451,27 @@ const AdminConsole: React.FC = () => {
                       <Edit className="h-3 w-3" />
                       Edit
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => deleteJournal(journal)}
-                      disabled={loading}
-                      className="flex items-center gap-1"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                      Delete
-                    </Button>
+                    {/* Delete moved into Edit dialog to avoid accidental clicks */}
                   </div>
                 </div>
               </CardContent>
             </Card>
+          ))}
+        </div>
+
+        {/* Mobile Journals List */}
+        <div className="space-y-3 sm:hidden">
+          {journals.map((journal, index) => (
+            <JournalCardCompact
+              key={journal.id ?? journal.journalName ?? index}
+              journal={journal}
+              onEdit={(j) => {
+                setEditingJournal(j);
+                setIsEditDialogOpen(true);
+              }}
+              onTest={(url) => testJournalFeed(url)}
+              loading={loading}
+            />
           ))}
         </div>
 
@@ -415,6 +487,10 @@ const AdminConsole: React.FC = () => {
                 setJournal={setEditingJournal}
                 onSave={() => saveJournal(editingJournal, true)}
                 onTest={() => testJournalFeed(editingJournal.url)}
+                onDelete={() => {
+                  setJournalToDelete(editingJournal);
+                  setIsDeleteDialogOpen(true);
+                }}
                 loading={loading}
               />
             )}
@@ -432,9 +508,10 @@ interface JournalFormProps {
   onSave: () => void;
   onTest: () => void;
   loading: boolean;
+  onDelete?: () => void;
 }
 
-const JournalForm: React.FC<JournalFormProps> = ({ journal, setJournal, onSave, onTest, loading }) => {
+const JournalForm: React.FC<JournalFormProps> = ({ journal, setJournal, onSave, onTest, loading, onDelete }) => {
   return (
     <div className="space-y-4">
       <div>
@@ -468,13 +545,27 @@ const JournalForm: React.FC<JournalFormProps> = ({ journal, setJournal, onSave, 
         </Select>
       </div>
       
-      <div className="flex gap-2 pt-4">
-        <Button onClick={onSave} disabled={loading || !journal.journalName || !journal.url}>
-          {loading ? 'Saving...' : 'Save Journal'}
-        </Button>
-        <Button onClick={onTest} variant="outline" disabled={loading || !journal.url}>
-          {loading ? 'Testing...' : 'Test Feed'}
-        </Button>
+      <div className="flex items-center justify-between pt-4">
+        <div className="flex gap-2">
+          <Button onClick={onSave} disabled={loading || !journal.journalName || !journal.url}>
+            {loading ? 'Saving...' : 'Save Journal'}
+          </Button>
+          <Button onClick={onTest} variant="outline" disabled={loading || !journal.url}>
+            {loading ? 'Testing...' : 'Test Feed'}
+          </Button>
+        </div>
+        {onDelete && (
+          <div className="ml-4">
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label={`Delete ${journal.journalName}`}
+              className="text-sm font-medium text-destructive hover:underline dark:text-destructive-foreground focus:outline-none focus:ring-2 focus:ring-destructive/30 focus:ring-offset-2 rounded-sm disabled:opacity-50"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
