@@ -135,6 +135,7 @@ function getSystemThemeSnapshot() {
 
 const Home: React.FC = () => {
   const { data: session } = useSession();
+  const [localDisplayName, setLocalDisplayName] = useState<string | null>(null);
   const [highlighted, setHighlighted] = useState<HighlightedArticle[]>([]);
   const [highlightedLoading, setHighlightedLoading] = useState(true);
   // UI-visible placeholder for highlighted section — only show after a short delay
@@ -142,7 +143,7 @@ const Home: React.FC = () => {
   const [upvoteLoading, setUpvoteLoading] = useState(false);
   const [themePreference, setThemePreference] = useState<'system' | 'light' | 'dark'>('system');
   const [journalsList, setJournalsList] = useState<string[]>([]);
-  const userDisplayName = session?.user?.name?.trim() || session?.user?.email?.split('@')[0] || 'Reader';
+  const userDisplayName = (localDisplayName ?? session?.user?.name)?.trim() || session?.user?.email?.split('@')[0] || 'Reader';
   // Per-journal state
   const [articles, setArticles] = useState<{ [journal: string]: Article[] }>({});
   const [loading, setLoading] = useState<{ [journal: string]: boolean }>({});
@@ -177,6 +178,14 @@ const Home: React.FC = () => {
     }
     return () => { if (timer) window.clearTimeout(timer); };
   }, [highlightedLoading]);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      try { setLocalDisplayName(e?.detail?.name ?? null); } catch (err) {}
+    };
+    window.addEventListener('profileUpdated', handler as EventListener);
+    return () => window.removeEventListener('profileUpdated', handler as EventListener);
+  }, []);
 
   // Open the profile dialog only once per user record.
   useEffect(() => {
@@ -782,9 +791,6 @@ const Home: React.FC = () => {
                                 >
                                   <CardHeader className="p-4 pb-2">
                                     <div className="flex items-start justify-between mb-2">
-                                      <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 text-xs px-1.5 py-0.5 rounded-full truncate max-w-[60%] whitespace-nowrap">
-                                        #{index + 1}
-                                      </Badge>
                                       <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                                         <Calendar className="h-3 w-3 mr-1" />
                                         {formatDate(article.publicationDate)}
@@ -862,11 +868,8 @@ const Home: React.FC = () => {
                                   setSelectedJournal(journalName);
                                 }}
                               >
-                                <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+                                  <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
                                   <div className="flex items-start justify-between mb-2 sm:mb-3">
-                                    <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 text-xs px-1.5 py-0.5 rounded-full truncate max-w-[60%] whitespace-nowrap">
-                                      #{index + 1}
-                                    </Badge>
                                     <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                                       <Calendar className="h-3 w-3 mr-1" />
                                       {formatDate(article.publicationDate)}
@@ -908,7 +911,7 @@ const Home: React.FC = () => {
           setSelectedArticle(null);
           setSelectedJournal(null);
         }}>
-          <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto">
+          <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[66vh] sm:max-h-[70vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-auto">
             {selectedArticle && (
               <>
                 <DialogHeader className="pb-3 sm:pb-4">

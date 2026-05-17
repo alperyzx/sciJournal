@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import UpvotedPanel from '@/components/UpvotedPanel';
 import { Input } from '@/components/ui/input';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface UpvotedArticle {
   id: string;
@@ -45,6 +45,7 @@ export default function ProfilePanel() {
   const [selected, setSelected] = useState<string[]>([]);
   const [dragJournal, setDragJournal] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [captcha, setCaptcha] = useState('');
@@ -63,7 +64,14 @@ export default function ProfilePanel() {
       const prefs = (session.user as any).selectedJournals as string[] | undefined;
       if (prefs) setSelected(prefs);
     }
+
+    const handler = (e: any) => {
+      try { if (e?.detail?.name) setName(e.detail.name); } catch (err) {}
+    };
+    window.addEventListener('profileUpdated', handler as EventListener);
+    return () => window.removeEventListener('profileUpdated', handler as EventListener);
   }, [session, status]);
+
 
   useEffect(() => {
     if (isNameEditable) {
@@ -198,12 +206,22 @@ export default function ProfilePanel() {
   };
 
   const save = async () => {
+    if (!name || name.trim().length === 0) {
+      setNameError('Display name is required');
+      setIsNameEditable(true);
+      setTimeout(() => nameInputRef.current?.focus(), 0);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch('/api/user/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, selectedJournals: selected }) });
       if (!res.ok) throw new Error('Save failed');
-      // Force a full reload so NextAuth session and UI reflect updated name immediately
-      window.location.href = '/';
+      // Update UI locally and exit edit mode (avoid forcing a full reload which can show stale session data)
+      setIsNameEditable(false);
+      try {
+        window.dispatchEvent(new CustomEvent('profileUpdated', { detail: { name } }));
+      } catch (e) {}
     } catch (e) {
       // ignore
     } finally { setLoading(false); }
@@ -230,11 +248,14 @@ export default function ProfilePanel() {
                 <Input
                   ref={nameInputRef}
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={e => { setName(e.target.value); if (nameError) setNameError(null); }}
                   readOnly={!isNameEditable}
                   tabIndex={isNameEditable ? 0 : -1}
+                  aria-invalid={!!nameError}
+                  aria-describedby={nameError ? 'display-name-error' : undefined}
                   className={`flex-1 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 ${!isNameEditable ? 'cursor-default pr-10 focus-visible:ring-0 focus-visible:ring-offset-0' : ''}`}
                 />
+                {nameError ? <div id="display-name-error" className="text-sm text-red-600 dark:text-red-400 mt-1">{nameError}</div> : null}
                 <Button
                   type="button"
                   variant="ghost"
@@ -323,7 +344,7 @@ export default function ProfilePanel() {
           </div>
 
           <Dialog open={showUpvotes} onOpenChange={setShowUpvotes}>
-            <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[66vh] sm:max-h-[70vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-auto">
                 <DialogTitle className="sr-only">Upvoted articles</DialogTitle>
                 <UpvotedPanel onClose={() => setShowUpvotes(false)} />
               </DialogContent>
@@ -364,7 +385,7 @@ export default function ProfilePanel() {
       <AlertDialog open={pendingDelete} onOpenChange={(open) => {
         if (!open) setPendingDelete(false);
       }}>
-        <AlertDialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-sm bg-white/95 dark:bg-gray-900/95 border border-gray-200/50 dark:border-gray-700/50 rounded-lg mx-auto p-4 shadow-lg">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-gray-900 dark:text-gray-300">Delete your account?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
@@ -380,9 +401,9 @@ export default function ProfilePanel() {
 
           <AlertDialogFooter>
             <AlertDialogCancel className="border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={onConfirmDelete} className="bg-red-600 text-white hover:bg-red-700" disabled={deleteLoading || !captchaToken}>
+            <Button type="button" onClick={onConfirmDelete} className="bg-red-600 text-white hover:bg-red-700" disabled={deleteLoading || !captchaToken}>
               {deleteLoading ? 'Deleting...' : 'Delete account'}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
