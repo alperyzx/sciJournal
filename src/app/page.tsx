@@ -468,7 +468,7 @@ const Home: React.FC = () => {
                       setShowProfileDialog(open);
                     }}
                   >
-                    <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto">
+                    <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[66vh] sm:max-h-[70vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-auto">
                         <DialogTitle className="sr-only">Profile</DialogTitle>
                         <ProfilePanel />
                     </DialogContent>
