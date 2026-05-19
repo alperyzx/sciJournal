@@ -105,9 +105,17 @@ const AdminConsole: React.FC = () => {
   };
 
   useEffect(() => {
-    loadJournals();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (status === 'authenticated' && isAdmin) {
+      loadJournals({ showLoading: true });
+      return;
+    }
+
+    // Ensure login/non-admin views do not surface stale journal loading errors.
+    setMessage(null);
+    setJournals([]);
+    setLoading(false);
+    setRefreshing(false);
+  }, [status, isAdmin]);
 
   const setJournalOrder = async (journal: Journal, order: number) => {
     // send full journal payload (PUT requires journalName and url)
