@@ -569,13 +569,6 @@ const Home: React.FC = () => {
             </div>
           </div>
           
-          {searchQuery && (
-            <div className="text-center mt-2 pointer-events-auto px-2">
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                Press Enter or click on articles to search
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
