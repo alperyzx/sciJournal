@@ -39,7 +39,7 @@ const loadJournalsOnce = async () => {
 };
 
 export default function ProfilePanel() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [isNameEditable, setIsNameEditable] = useState(false);
@@ -57,14 +57,22 @@ export default function ProfilePanel() {
   const activePointerJournal = useRef<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [showUpvotes, setShowUpvotes] = useState(false);
+  const selectedInitUserRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated') return;
-    if (session?.user) {
-      setName(session.user.name ?? '');
-      setIsNameEditable(false);
+    if (status === 'unauthenticated' || !session?.user) {
+      selectedInitUserRef.current = null;
+      return;
+    }
+
+    setName(session.user.name ?? '');
+    setIsNameEditable(false);
+
+    const currentUserKey = session.user.id || session.user.email || null;
+    if (currentUserKey && selectedInitUserRef.current !== currentUserKey) {
       const prefs = (session.user as any).selectedJournals as string[] | undefined;
-      if (prefs) setSelected(prefs);
+      setSelected(Array.isArray(prefs) ? prefs : []);
+      selectedInitUserRef.current = currentUserKey;
     }
 
     const handler = (e: any) => {
@@ -230,6 +238,7 @@ export default function ProfilePanel() {
       toast({
         title: 'Changes saved',
       });
+      void update().catch(() => {});
     } catch (e) {
       toast({
         title: 'Could not save profile',
