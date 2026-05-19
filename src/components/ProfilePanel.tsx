@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import UpvotedPanel from '@/components/UpvotedPanel';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface UpvotedArticle {
   id: string;
@@ -39,6 +40,7 @@ const loadJournalsOnce = async () => {
 
 export default function ProfilePanel() {
   const { data: session, status } = useSession();
+  const { toast } = useToast();
   const [name, setName] = useState('');
   const [isNameEditable, setIsNameEditable] = useState(false);
   const [journals, setJournals] = useState<string[]>([]);
@@ -216,14 +218,24 @@ export default function ProfilePanel() {
     setLoading(true);
     try {
       const res = await fetch('/api/user/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, selectedJournals: selected }) });
-      if (!res.ok) throw new Error('Save failed');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message || 'Save failed');
+      }
       // Update UI locally and exit edit mode (avoid forcing a full reload which can show stale session data)
       setIsNameEditable(false);
       try {
-        window.dispatchEvent(new CustomEvent('profileUpdated', { detail: { name } }));
+        window.dispatchEvent(new CustomEvent('profileUpdated', { detail: { name, selectedJournals: selected } }));
       } catch (e) {}
+      toast({
+        title: 'Changes saved',
+      });
     } catch (e) {
-      // ignore
+      toast({
+        title: 'Could not save profile',
+        description: e instanceof Error ? e.message : 'Please try again.',
+        variant: 'destructive',
+      });
     } finally { setLoading(false); }
   };
 
