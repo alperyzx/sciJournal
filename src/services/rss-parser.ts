@@ -54,7 +54,18 @@ export interface RssFeed {
 export async function fetchAndParseRssFeed(feedUrl: string, journalName: string): Promise<Article[]> {
   try {
     const parser = new Parser();
-    const feed = await parser.parseURL(feedUrl);
+    const response = await fetch(feedUrl, {
+      headers: {
+        'user-agent': 'SciJournal Digest',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch RSS feed: ${response.status} ${response.statusText}`);
+    }
+
+    const feedXml = await response.text();
+    const feed = await parser.parseString(feedXml);
 
     return feed.items.map(item => ({
       title: item.title || 'No Title',

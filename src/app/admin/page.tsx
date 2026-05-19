@@ -308,10 +308,10 @@ const AdminConsole: React.FC = () => {
         )}
 
         {/* Actions Bar */}
-        <div className="mb-5 flex flex-row gap-2 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+        <div className="mb-5 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="flex flex-1 items-center justify-center gap-2 sm:flex-none sm:w-auto">
+              <Button className="flex w-full min-w-0 items-center justify-center gap-2 sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Add Journal
               </Button>
@@ -367,7 +367,7 @@ const AdminConsole: React.FC = () => {
           <Button
             onClick={() => loadJournals({ showLoading: true })}
             variant="outline"
-            className="flex flex-1 items-center justify-center gap-2 sm:flex-none sm:w-auto"
+            className="flex w-full min-w-0 items-center justify-center gap-2 sm:w-auto"
             disabled={refreshing || loading}
             aria-busy={refreshing}
           >
