@@ -136,6 +136,7 @@ function getSystemThemeSnapshot() {
 const Home: React.FC = () => {
   const { data: session } = useSession();
   const [localDisplayName, setLocalDisplayName] = useState<string | null>(null);
+  const [localSelectedJournals, setLocalSelectedJournals] = useState<string[] | null>(null);
   const [highlighted, setHighlighted] = useState<HighlightedArticle[]>([]);
   const [highlightedLoading, setHighlightedLoading] = useState(true);
   // UI-visible placeholder for highlighted section — only show after a short delay
@@ -157,6 +158,7 @@ const Home: React.FC = () => {
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
   const itemRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const isMountedRef = useRef(true);
   const headerHeight = 140; // px, optimized for mobile
   const userDisplayName = (localDisplayName ?? session?.user?.name)?.trim() || session?.user?.email?.split('@')[0] || 'Reader';
   const userInitial = (userDisplayName?.trim()?.[0] || session?.user?.email?.trim()?.[0] || 'R').toUpperCase();
@@ -181,11 +183,25 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     const handler = (e: any) => {
-      try { setLocalDisplayName(e?.detail?.name ?? null); } catch (err) {}
+      try {
+        setLocalDisplayName(e?.detail?.name ?? null);
+        setLocalSelectedJournals(Array.isArray(e?.detail?.selectedJournals) ? e.detail.selectedJournals : null);
+      } catch (err) {}
     };
     window.addEventListener('profileUpdated', handler as EventListener);
     return () => window.removeEventListener('profileUpdated', handler as EventListener);
   }, []);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const prefs = (session?.user as any)?.selectedJournals as string[] | undefined;
+    setLocalSelectedJournals(prefs ?? null);
+  }, [session?.user?.id, session?.user?.email, session?.user?.selectedJournals]);
 
   // Open the profile dialog only once per user record.
   useEffect(() => {
@@ -225,6 +241,32 @@ const Home: React.FC = () => {
   // UI-visible placeholder for journals area — show only after a short delay
   const [showJournalsPlaceholder, setShowJournalsPlaceholder] = useState(false);
 
+  const refreshJournalData = async () => {
+    setGlobalLoading(true);
+    setGlobalError(null);
+    try {
+      const response = await axios.get('/api/journals?includeArticles=true');
+      const payload = response.data as JournalsAndArticlesResponse;
+      const groups: ArticleGroup[] = payload.articles || [];
+      const articlesMap: { [journal: string]: Article[] } = {};
+      groups.forEach(group => {
+        articlesMap[group.journalName] = group.articles;
+      });
+      if (!isMountedRef.current) return;
+      setArticles(articlesMap);
+      const names = Array.isArray(payload.journals) ? payload.journals.map(j => j.journalName) : [];
+      if (names.length > 0) setJournalsList(names);
+    } catch (err) {
+      if (isMountedRef.current) {
+        setGlobalError('Failed to fetch articles. Please try again later.');
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setGlobalLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     // Delay showing journals placeholders (top-level and per-journal) to avoid flicker
     let t: number | undefined;
@@ -236,36 +278,8 @@ const Home: React.FC = () => {
     return () => { if (t) window.clearTimeout(t); };
   }, [globalLoading]);
 
-  // Fetch all articles for all journals on mount
   useEffect(() => {
-    let cancelled = false;
-    const fetchAll = async () => {
-      setGlobalLoading(true);
-      setGlobalError(null);
-      try {
-        const response = await axios.get('/api/journals?includeArticles=true');
-        const payload = response.data as JournalsAndArticlesResponse;
-        const groups: ArticleGroup[] = payload.articles || [];
-        const articlesMap: { [journal: string]: Article[] } = {};
-        groups.forEach(group => {
-          articlesMap[group.journalName] = group.articles;
-        });
-        if (!cancelled) {
-          setArticles(articlesMap);
-          const names = Array.isArray(payload.journals) ? payload.journals.map(j => j.journalName) : [];
-          if (names.length > 0) setJournalsList(names);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setGlobalError('Failed to fetch articles. Please try again later.');
-        }
-      } finally {
-        if (!cancelled) {
-          setGlobalLoading(false);
-        }
-      }
-    };
-    fetchAll();
+    void refreshJournalData();
     // fetch highlighted separately
     const fetchHighlighted = async () => {
       setHighlightedLoading(true);
@@ -279,14 +293,22 @@ const Home: React.FC = () => {
       }
     };
     fetchHighlighted();
-    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      void refreshJournalData();
+    };
+
+    window.addEventListener('profileUpdated', handler as EventListener);
+    return () => window.removeEventListener('profileUpdated', handler as EventListener);
   }, []);
 
   // derive visible journals from session preferences and DB-backed journals list
   const visibleJournals: string[] = (() => {
     try {
-      const prefs = (session?.user as any)?.selectedJournals as string[] | undefined;
-      if (prefs && prefs.length > 0) return prefs.filter(p => journalsList.includes(p));
+      const prefs = localSelectedJournals ?? (session?.user as any)?.selectedJournals as string[] | undefined;
+      if (prefs) return prefs.filter(p => journalsList.includes(p));
     } catch (e) {}
     return journalsList;
   })();
