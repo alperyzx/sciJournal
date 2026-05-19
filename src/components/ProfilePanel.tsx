@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { signOut } from 'next-auth/react';
 import { GripVertical, PencilLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import UpvotedPanel from '@/components/UpvotedPanel';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -264,8 +264,8 @@ export default function ProfilePanel() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Profile name</label>
-            <div className="flex items-center gap-3">
-              <div className="flex flex-1 items-center gap-2 sm:w-1/2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex w-full min-w-0 items-center gap-2 sm:flex-1 sm:w-auto">
                 <Input
                   ref={nameInputRef}
                   value={name}
@@ -274,7 +274,7 @@ export default function ProfilePanel() {
                   tabIndex={isNameEditable ? 0 : -1}
                   aria-invalid={!!nameError}
                   aria-describedby={nameError ? 'display-name-error' : undefined}
-                  className={`flex-1 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 ${!isNameEditable ? 'cursor-default pr-10 focus-visible:ring-0 focus-visible:ring-offset-0' : ''}`}
+                  className={`flex-1 min-w-0 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 ${!isNameEditable ? 'cursor-default pr-10 focus-visible:ring-0 focus-visible:ring-offset-0' : ''}`}
                 />
                 {nameError ? <div id="display-name-error" className="text-sm text-red-600 dark:text-red-400 mt-1">{nameError}</div> : null}
                 <Button
@@ -289,8 +289,10 @@ export default function ProfilePanel() {
                   <PencilLine className="h-4 w-4" />
                 </Button>
               </div>
-              <Button onClick={() => setShowUpvotes(true)} className="hidden sm:inline-flex rounded-full px-4">View upvotes</Button>
-              <Button onClick={() => setShowUpvotes(true)} className="sm:hidden rounded-full px-3 py-2">Upvotes</Button>
+              <div className="flex w-full sm:w-auto">
+                <Button onClick={() => setShowUpvotes(true)} className="hidden sm:inline-flex rounded-full px-4">View upvotes</Button>
+                <Button onClick={() => setShowUpvotes(true)} className="w-full rounded-full px-3 py-2 sm:hidden">Upvotes</Button>
+              </div>
             </div>
           </div>
           <div>
@@ -299,7 +301,7 @@ export default function ProfilePanel() {
               {journals.map(j => (
                 <label
                   key={j}
-                  className={`flex items-center gap-3 p-2 sm:p-3 border rounded-xl transition-all cursor-pointer ${selected.includes(j)
+                  className={`flex min-w-0 items-start gap-3 p-2 sm:items-center sm:p-3 border rounded-xl transition-all cursor-pointer ${selected.includes(j)
                     ? 'border-blue-500 bg-blue-50 text-blue-950 shadow-sm dark:border-cyan-400 dark:bg-slate-900 dark:text-slate-100'
                     : 'bg-white/80 dark:bg-gray-950/70 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:border-blue-400 dark:hover:border-cyan-500'
                   }`}
@@ -310,7 +312,7 @@ export default function ProfilePanel() {
                     onChange={() => toggle(j)}
                     className="h-4 w-4 rounded border-gray-300 accent-blue-600 focus:ring-blue-500 dark:[color-scheme:dark] dark:border-gray-700 dark:bg-gray-800 dark:accent-cyan-500"
                   />
-                  <span className="text-sm leading-snug flex-1">{j}</span>
+                  <span className="min-w-0 flex-1 break-words whitespace-normal text-sm leading-snug">{j}</span>
                 </label>
               ))}
             </div>
@@ -328,7 +330,7 @@ export default function ProfilePanel() {
                     <li
                       key={name}
                       data-journal-item={name}
-                      className={`relative flex items-center justify-between gap-3 rounded border px-2 py-1 sm:px-3 sm:py-2 ${isDragging ? 'border-blue-500 bg-blue-50/80 shadow-sm dark:border-cyan-400 dark:bg-cyan-950/25' : 'border-gray-200 bg-white/70 dark:border-gray-700 dark:bg-gray-950/60'}`}
+                      className={`relative flex flex-wrap items-start justify-between gap-2 rounded border px-2 py-1 sm:flex-nowrap sm:items-center sm:gap-3 sm:px-3 sm:py-2 ${isDragging ? 'border-blue-500 bg-blue-50/80 shadow-sm dark:border-cyan-400 dark:bg-cyan-950/25' : 'border-gray-200 bg-white/70 dark:border-gray-700 dark:bg-gray-950/60'}`}
                       draggable
                       onDragStart={(e) => onDragStart(e, name)}
                       onDragOver={onDragOver}
@@ -336,10 +338,10 @@ export default function ProfilePanel() {
                       onDragEnd={onDragEnd}
                       aria-grabbed={isDragging}
                     >
-                      <span className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{name}</span>
+                      <span className="min-w-0 flex-1 break-words text-sm leading-snug text-gray-900 dark:text-gray-100 sm:truncate">{name}</span>
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 rounded-full border border-transparent px-2 py-1 text-xs font-semibold text-gray-500 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-400 dark:hover:border-cyan-500 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-200"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full border border-transparent px-2 py-1 text-xs font-semibold text-gray-500 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:text-gray-400 dark:hover:border-cyan-500 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-200"
                         aria-label={`Drag ${name} to reorder`}
                         title="Drag to reorder"
                         style={{ touchAction: 'none' }}
@@ -359,14 +361,15 @@ export default function ProfilePanel() {
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button onClick={save} disabled={loading} className="rounded-full px-4 sm:px-6 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:from-blue-700 hover:to-teal-600">
+            <Button onClick={save} disabled={loading} className="w-full rounded-full px-4 sm:w-auto sm:px-6 bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg hover:from-blue-700 hover:to-teal-600">
               Save profile
             </Button>
           </div>
 
           <Dialog open={showUpvotes} onOpenChange={setShowUpvotes}>
-            <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[66vh] sm:max-h-[70vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[66vh] sm:max-h-[70vh] overflow-x-hidden overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-auto">
                 <DialogTitle className="sr-only">Upvoted articles</DialogTitle>
+                <DialogDescription className="sr-only">Articles you have upvoted are shown here.</DialogDescription>
                 <UpvotedPanel onClose={() => setShowUpvotes(false)} />
               </DialogContent>
           </Dialog>
