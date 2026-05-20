@@ -1,12 +1,19 @@
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen modern-bg text-scijournal-text flex flex-col">
       <header className="fixed top-0 left-0 right-0 z-[999] bg-white/90 dark:bg-gray-950/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="container mx-auto px-3 sm:px-4 py-3 text-center">
+        <div className="container mx-auto px-3 sm:px-4 py-3 text-center relative">
           <Link href="/" className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-400 dark:from-blue-400 dark:to-teal-300">SciJournal Digest</Link>
+          <Link href="/" aria-label="Back to home" title="Back" className="gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground py-2 flex h-10 w-10 items-center justify-center px-0 sm:w-auto sm:px-4 absolute right-3 top-1/2 transform -translate-y-1/2">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Back to Home</span>
+          </Link>
         </div>
       </header>
 

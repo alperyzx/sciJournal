@@ -10,8 +10,6 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import ProfilePanel from '@/components/ProfilePanel';
-import PrivacyPanel from '@/components/PrivacyPanel';
-import TermsPanel from '@/components/TermsPanel';
 import LoginPanel from '@/components/LoginPanel';
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/components/ui/accordion';
 import {Search, Calendar, ExternalLink, LogOut, Moon, Settings, Sun} from 'lucide-react';
@@ -155,8 +153,6 @@ const Home: React.FC = () => {
   const [modalVotes, setModalVotes] = useState<number | null>(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
-  const [showTermsDialog, setShowTermsDialog] = useState(false);
   const itemRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const isMountedRef = useRef(true);
   const headerHeight = 140; // px, optimized for mobile
@@ -1018,28 +1014,13 @@ const Home: React.FC = () => {
               <div className="flex items-center gap-2 sm:gap-4">
               <span className="text-gray-500 dark:text-gray-400">© 2025</span>
               <a href="https://github.com/alperyzx/sciJournal" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About</a>
-              <button type="button" onClick={() => setShowPrivacyDialog(true)} className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy</button>
-              <button type="button" onClick={() => setShowTermsDialog(true)} className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms</button>
+              <a href="/privacy" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy</a>
+              <a href="/terms" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms</a>
             </div>
           </div>
         </div>
       </footer>
-
-      {/* Privacy Dialog */}
-      <Dialog open={showPrivacyDialog} onOpenChange={setShowPrivacyDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto p-4">
-          <DialogTitle className="sr-only">Privacy</DialogTitle>
-          <PrivacyPanel />
-        </DialogContent>
-      </Dialog>
-
-      {/* Terms Dialog */}
-      <Dialog open={showTermsDialog} onOpenChange={setShowTermsDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl mx-2 sm:mx-auto p-4">
-          <DialogTitle className="sr-only">Terms</DialogTitle>
-          <TermsPanel />
-        </DialogContent>
-      </Dialog>
+      {/* Privacy and Terms are now separate pages linked above. */}
     </div>
   );
 };
