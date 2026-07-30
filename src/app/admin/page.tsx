@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
+// next-auth v5 — next-auth/react API is unchanged
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';

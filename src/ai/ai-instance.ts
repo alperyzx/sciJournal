@@ -1,12 +1,9 @@
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-export const ai = genkit({
-  promptDir: './prompts',
-  plugins: [
-    googleAI({
-      apiKey: process.env.GOOGLE_GENAI_API_KEY,
-    }),
-  ],
-  model: 'googleai/gemini-2.0-flash',
-});
+const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+if (!apiKey) {
+  throw new Error('GOOGLE_GENAI_API_KEY environment variable is not set');
+}
+
+export const genAI = new GoogleGenerativeAI(apiKey);
+export const DEFAULT_MODEL = 'gemini-2.0-flash';
