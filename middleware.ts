@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 export async function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith('/login')) {
-    return new NextResponse(null, { status: 404 });
-  }
-
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
@@ -19,5 +15,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*', '/login/:path*'],
+  matcher: ['/admin/:path*', '/api/admin/:path*'],
 };
