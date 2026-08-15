@@ -4,5 +4,7 @@
     "chat.tools.terminal.autoApprove": {
         "npm install": true,
         "true": true
-    }
+    },
+    "chat.utilityModel": "saka/claude-haiku-4-5-20251001",
+    "chat.utilitySmallModel": "saka/claude-haiku-4-5-20251001"
 }
