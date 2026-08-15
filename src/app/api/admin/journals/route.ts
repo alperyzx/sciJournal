@@ -3,6 +3,7 @@ import { defaultJournals } from '@/lib/default-journals';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createJournal, deleteJournal, listJournals, seedJournalsIfEmpty, updateJournal, type JournalInput } from '@/lib/repositories';
+import { parseAndValidateFeedUrl } from '@/services/safe-rss-fetch';
 
 type Journal = JournalInput;
 
@@ -23,6 +24,16 @@ function serializeJournal(journal: Journal) {
     order: journal.order,
     homeVisible: journal.homeVisible,
   };
+}
+
+function validateJournalFeedUrl(url: unknown): { url?: string; error?: string } {
+  if (typeof url !== 'string') return { error: 'Journal URL is required.' };
+
+  try {
+    return { url: parseAndValidateFeedUrl(url).toString() };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Journal URL is invalid.' };
+  }
 }
 
 // GET - Fetch all journals
@@ -61,6 +72,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const validation = validateJournalFeedUrl(newJournal.url);
+    if (validation.error) return NextResponse.json({ message: validation.error }, { status: 400 });
+    newJournal.url = validation.url!;
+
     const feeds = await listJournals();
     if (feeds.some(feed => feed.journalName.toLowerCase() === newJournal.journalName.toLowerCase())) {
       return NextResponse.json(
@@ -97,6 +112,10 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const validation = validateJournalFeedUrl(updatedJournal.url);
+    if (validation.error) return NextResponse.json({ message: validation.error }, { status: 400 });
+    updatedJournal.url = validation.url!;
 
     const savedJournal = await updateJournal(updatedJournal);
 
