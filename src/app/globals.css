@@ -134,12 +134,56 @@ body {
     opacity: 0.1;
   }
   
-  /* Remove the old triangles and animation keyframes */
+  /* Soft, self-contained page background animation. */
   .modern-bg::before,
-  .modern-bg::after,
-  .triangle-1,
-  .triangle-2,
-  .triangle-3 {
-    display: none;
+  .modern-bg::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: 9999px;
+    filter: blur(42px);
+    opacity: 0.2;
+    will-change: transform;
+  }
+
+  .modern-bg::before {
+    width: 28rem;
+    height: 28rem;
+    top: 12%;
+    left: -10rem;
+    background: rgba(59, 130, 246, 0.4);
+    animation: scijournal-float-left 20s ease-in-out infinite alternate;
+  }
+
+  .modern-bg::after {
+    width: 24rem;
+    height: 24rem;
+    right: -8rem;
+    bottom: 8%;
+    background: rgba(20, 184, 166, 0.35);
+    animation: scijournal-float-right 24s ease-in-out infinite alternate;
+  }
+
+  .dark .modern-bg::before,
+  .dark .modern-bg::after {
+    opacity: 0.3;
+  }
+
+  @keyframes scijournal-float-left {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to { transform: translate3d(14vw, 9rem, 0) scale(1.12); }
+  }
+
+  @keyframes scijournal-float-right {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to { transform: translate3d(-12vw, -8rem, 0) scale(1.1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .modern-bg::before,
+    .modern-bg::after {
+      animation: none;
+    }
   }
 }
