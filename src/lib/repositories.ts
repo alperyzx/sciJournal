@@ -47,10 +47,16 @@ export interface RssArticleGroup {
 }
 
 const RSS_CACHE_TTL = 60 * 60 * 1000;
+const HIGHLIGHTED_CACHE_TTL = 60 * 60 * 1000;
 
 let journalCache: JournalDocument[] | null = null;
 let journalCacheVersion = 0;
 let rssCache: { data: RssArticleGroup[]; timestamp: number; journalVersion: number } | null = null;
+let highlightedCache: { data: ArticleDocument[]; timestamp: number; limit: number } | null = null;
+
+export function invalidateHighlightedCache(): void {
+  highlightedCache = null;
+}
 
 export function invalidateJournalCaches(): void {
   journalCache = null;
@@ -387,6 +393,7 @@ export async function toggleVote(userId: string, articleId: string, userEmail?: 
   if (existing) {
     await votes.deleteOne({ _id: existing._id });
     const votesRemaining = await decrementArticleVoteCountAndCleanup(articleId);
+    invalidateHighlightedCache();
     return { upvoted: false, votes: votesRemaining };
   }
 
@@ -395,14 +402,21 @@ export async function toggleVote(userId: string, articleId: string, userEmail?: 
   const articles = db.collection<ArticleDocument>('articles');
   await articles.updateOne({ _id: artObjectId }, { $inc: { voteCount: 1 }, $set: { updatedAt: now } });
   const a = await articles.findOne({ _id: artObjectId });
+  invalidateHighlightedCache();
   return { upvoted: true, votes: a?.voteCount ?? 0 };
 }
 
 export async function getTopHighlighted(limit = 6): Promise<ArticleDocument[]> {
+  if (highlightedCache && highlightedCache.limit === limit && Date.now() - highlightedCache.timestamp < HIGHLIGHTED_CACHE_TTL) {
+    return highlightedCache.data;
+  }
+
   const db = await getDb();
   const articles = db.collection<ArticleDocument>('articles');
   // Only surface articles that still have at least one vote.
-  return articles.find({ voteCount: { $gt: 0 } }).sort({ voteCount: -1, publicationDate: -1 }).limit(limit).toArray();
+  const data = await articles.find({ voteCount: { $gt: 0 } }).sort({ voteCount: -1, publicationDate: -1 }).limit(limit).toArray();
+  highlightedCache = { data, timestamp: Date.now(), limit };
+  return data;
 }
 
 export async function getUserVotesForArticleIds(userId: string, articleIds: string[], userEmail?: string): Promise<Set<string>> {
@@ -512,6 +526,7 @@ export async function deleteAuthUserById(userId: string, userEmail?: string): Pr
       ...(normalizedEmail ? [{ userEmail: normalizedEmail }] : []),
     ],
   });
+  invalidateHighlightedCache();
 
   // Finally remove the user record
   const result = await users.deleteOne({ _id: userObjectId });
