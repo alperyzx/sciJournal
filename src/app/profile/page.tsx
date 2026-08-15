@@ -1,19 +1,10 @@
-'use client';
+"use client";
 
-import React, { useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import Link from 'next/link';
 import ProfilePanel from '@/components/ProfilePanel';
 
 export default function ProfilePage() {
-  const { status } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === 'unauthenticated') router.push('/');
-  }, [status, router]);
-
   return (
     <div className="min-h-screen modern-bg text-scijournal-text flex flex-col">
       <header className="fixed top-0 left-0 right-0 z-[999] bg-white/90 dark:bg-gray-950/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm">
