@@ -23,9 +23,6 @@ const providers = [
 
 export const authOptions: NextAuthOptions = {
   providers,
-  pages: {
-    signIn: '/login',
-  },
   callbacks: {
     async signIn({ user, account }) {
       if (!user?.email) {

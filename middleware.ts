@@ -1,14 +1,23 @@
-import { withAuth } from 'next-auth/middleware';
+import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
-export default withAuth(
-  function middleware() {},
-  {
-    callbacks: {
-      authorized: ({ token }) => token?.role === 'admin',
-    },
+export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/login')) {
+    return new NextResponse(null, { status: 404 });
   }
-);
+
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  if (token?.role !== 'admin') {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*'],
+  matcher: ['/admin/:path*', '/api/admin/:path*', '/login/:path*'],
 };
