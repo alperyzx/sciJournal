@@ -6,6 +6,7 @@ import { getCachedRssData, listVisibleJournals, setCachedRssData, type RssArticl
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const MAX_ARTICLES = 12;
+let refreshInFlight: Promise<RssArticleGroup[]> | null = null;
 
 function extractDateFromHtml(htmlContent: string): string | null {
   const pubDateRegex = /<p>Publication date: ([^<]+)<\/p>/i;
@@ -122,14 +123,7 @@ async function fetchRegularFeed(feed: { journalName: string; url: string; type?:
   }
 }
 
-export async function getVisibleJournalArticleGroups(force = false): Promise<RssArticleGroup[]> {
-  if (!force) {
-    const cachedData = getCachedRssData();
-    if (cachedData) {
-      return cachedData;
-    }
-  }
-
+async function refreshVisibleJournalArticleGroups(): Promise<RssArticleGroup[]> {
   const feedSources = await listVisibleJournals();
   if (feedSources.length === 0) {
     return [];
@@ -145,4 +139,19 @@ export async function getVisibleJournalArticleGroups(force = false): Promise<Rss
   const finalResults = nonEmptyGroups.length > 0 ? nonEmptyGroups : results;
   setCachedRssData(finalResults);
   return finalResults;
+}
+
+export async function getVisibleJournalArticleGroups(): Promise<RssArticleGroup[]> {
+  const cachedData = getCachedRssData();
+  if (cachedData) {
+    return cachedData;
+  }
+
+  if (!refreshInFlight) {
+    refreshInFlight = refreshVisibleJournalArticleGroups().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+
+  return refreshInFlight;
 }
